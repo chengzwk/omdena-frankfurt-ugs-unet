@@ -5,6 +5,7 @@ import pandas as pd
 import rasterio
 import matplotlib.pyplot as plt
 import seaborn as sns
+from natsort import natsorted
 
 # Define paths
 data_dir = os.path.expanduser("~/Documents/Omdena/FrankfurtGermanyChapter_UrbanGreenSpaceMappping/MULC")
@@ -17,13 +18,13 @@ data_dir = os.path.expanduser("~/Documents/Omdena/FrankfurtGermanyChapter_UrbanG
 # 6: Clutter/Background
 class_names = ["impervious", "low_veg", "tree", "water", "background"]
 
-# Function to compute class ratios for each class
 def compute_class_ratios(mask):
+    """Function to compute class ratios for each class"""
     ratios = {class_name: np.mean(mask[i]) for i, class_name in enumerate(class_names)}
     return ratios
 
-# Urban environment classification thresholds
 def classify_urban_environment(ratios):
+    """Urban environment classification thresholds"""
     if ratios['impervious'] > 0.7:
         return 'Dense Urban'
     elif 0.3 < ratios['impervious'] <= 0.7 and (ratios['tree'] > 0.1 or ratios['low_veg'] > 0.1):
@@ -80,12 +81,13 @@ def plot_samples(df, num_samples=5):
         }
 
         cmap = plt.cm.colors.ListedColormap([class_colors[c] for c in sorted(class_colors)])
+        norm = plt.cm.colors.BoundaryNorm(boundaries=[1.5, 2.5, 3.5, 4.5, 5.5, 6.5], ncolors=5)  # Use a discrete colormap
 
         fig, axes = plt.subplots(1, 2, figsize=(10, 5))
         axes[0].imshow(image_array)
         axes[0].set_title(f"Image: {row['image_file']} ({row['urban_type']})")
 
-        axes[1].imshow(mask_array, cmap=cmap)
+        axes[1].imshow(mask_array, cmap=cmap, norm=norm)
         axes[1].set_title(f"Mask: {row['urban_type']}")
 
         plt.figtext(0.5, 0.01, f"Ratios: {row[class_names].to_dict()}", ha="center")
@@ -95,6 +97,7 @@ def compute_dataset_summary(image_dir):
     image_dir_data = []
     mask_dir = image_dir + '_masks'
     image_files = [f for f in os.listdir(os.path.join(data_dir, image_dir)) if f.endswith('GeoTIFF.tif')]
+    image_files = natsorted(image_files)
 
     for image_file in image_files:
         mask_file = image_file.replace('.tif', '_fractional_mask.tif')
@@ -120,7 +123,7 @@ def compute_dataset_summary(image_dir):
         })
 
     df = pd.DataFrame(image_dir_data)
-    plot_samples(df, 10)  # Inspect samples
+    plot_samples(df)  # Inspect samples
     df.to_csv('dataset_overview_{}.csv'.format(image_dir), index=False)
     print("Dataset summary saved to dataset_overview_{}.csv. Total images: {}"
           .format(image_dir, len(df)))
@@ -161,6 +164,8 @@ for image_dir in image_dirs:
         compute_dataset_summary(image_dir)
 
     show_dataset_statistics(image_dir)
+
+# Use Jupyter notebook for dataset inspection
 
 
 
