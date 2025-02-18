@@ -128,33 +128,6 @@ def compute_dataset_summary(image_dir):
     print("Dataset summary saved to dataset_overview_{}.csv. Total images: {}"
           .format(image_dir, len(df)))
 
-def show_dataset_statistics(image_dir):
-    df = pd.read_csv('dataset_overview_{}.csv'.format(image_dir))
-
-    # Print summary statistics
-    print("\nDataset Statistics for {}:".format(image_dir))
-    print(df.describe())
-
-    # Visualize distributions
-    fig, axes = plt.subplots(2, 3, figsize=(12, 7), constrained_layout=True)
-    axes = axes.flatten()
-    columns = class_names
-
-    for i, col in enumerate(columns):
-        sns.histplot(df[col], bins=20, kde=True, ax=axes[i])
-        axes[i].set_title(f"Histogram of {col}")
-
-    plt.tight_layout()
-    plt.subplots_adjust(wspace=0.3)  # Adjust wspace (width spacing) as needed
-    plt.show()
-
-    # Boxplots for ratios and indices
-    plt.figure(figsize=(10, 5))
-    sns.boxplot(data=df[class_names])
-    plt.xticks(rotation=45)
-    plt.title("Boxplot of Class Ratios")
-    plt.show()
-
 
 # Load dataset and compute statistics for each dataset
 image_dirs = sorted([d.replace('_masks', '') for d in os.listdir(data_dir) if d.endswith('_masks')])
@@ -163,9 +136,7 @@ for image_dir in image_dirs:
     if not os.path.exists(os.path.join(os.getcwd(), 'dataset_overview_{}.csv'.format(image_dir))):
         compute_dataset_summary(image_dir)
 
-    show_dataset_statistics(image_dir)
-
-# Use Jupyter notebook for dataset inspection
+# Use Jupyter notebook for dataset inspection and statistics
 
 
 
