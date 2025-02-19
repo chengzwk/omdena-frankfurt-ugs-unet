@@ -25,18 +25,18 @@ def compute_class_ratios(mask):
 
 def classify_urban_environment(ratios):
     """Urban environment classification thresholds"""
-    if ratios['impervious'] > 0.7:
-        return 'Dense Urban'
-    elif 0.3 < ratios['impervious'] <= 0.7 and (ratios['tree'] > 0.1 or ratios['low_veg'] > 0.1):
-        return 'Suburban'
+    if ratios['impervious'] > 0.45:
+        return 'Urban'
     elif ratios['water'] > 0.3:
         return 'River and Riverside'
+    elif 0.3 < ratios['impervious'] <= 0.45 and (ratios['tree'] > 0.1 or ratios['low_veg'] > 0.1):
+        return 'Suburban'
     elif ratios['tree'] > 0.6:
         return 'Forest'
     elif ratios['low_veg'] > 0.3 or ratios['tree'] > 0.3 or ratios['impervious'] < 0.2:
         return 'Outskirts/Agriculture'
     else:
-        return 'Unknown'
+        return 'Outskirts/Agriculture'
 
 def normalize_by_layer(image_array):
     """
@@ -135,6 +135,9 @@ image_dirs = sorted([d.replace('_masks', '') for d in os.listdir(data_dir) if d.
 for image_dir in image_dirs:
     if not os.path.exists(os.path.join(os.getcwd(), 'dataset_overview_{}.csv'.format(image_dir))):
         compute_dataset_summary(image_dir)
+
+    # df = pd.read_csv('dataset_overview_{}.csv'.format(image_dir))
+    # plot_samples(df, 15)
 
 # Use Jupyter notebook for dataset inspection and statistics
 
