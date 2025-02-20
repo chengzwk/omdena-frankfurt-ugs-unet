@@ -8,9 +8,8 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import matplotlib.gridspec as gridspec
 from natsort import natsorted
+from sklearn.model_selection import train_test_split
 
-
-random.seed(42)
 
 def print_progress_bar(iteration, total, length=40):
     """Print a progress bar."""
@@ -257,6 +256,21 @@ def inspect_dataset(image_dataset, mask_dataset, sample_size=10):
         gs.update(wspace=0.05, hspace=0.05)  # Adjust spacing here
         plt.show()
 
+def split_dataset(image_dataset, mask_dataset, test_size=0.15, val_size=0.15, random_state=42):
+    """Split dataset into train, validation, and test sets."""
+
+    # First, split off the test set
+    X_train_val, X_test, y_train_val, y_test = train_test_split(
+        image_dataset, mask_dataset, test_size=test_size, random_state=random_state
+    )
+
+    # Then, split train_val into actual train and validation sets
+    X_train, X_val, y_train, y_val = train_test_split(
+        X_train_val, y_train_val, test_size=val_size / (1 - test_size), random_state=random_state
+    )
+
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
 
 # Define paths
 data_dir = os.path.expanduser("~/Documents/Omdena/FrankfurtGermanyChapter_UrbanGreenSpaceMappping/MULC")
@@ -266,14 +280,20 @@ data_dir = os.path.expanduser("~/Documents/Omdena/FrankfurtGermanyChapter_UrbanG
 image_dir = 'VBWVA_8R'
 image_dataset, mask_dataset = read_file(image_dir, multiclass=False, if_subset=True, subset_size=100)
 
+# Print statistics of the dataset and visually inspect the dataset
+show_statistics(image_dataset, mask_dataset)
+inspect_dataset(image_dataset, mask_dataset)
+
 # Get the balanced dataset
 # image_dataset_balanced, mask_dataset_balanced = remove_images(image_dataset, mask_dataset, 0.86)
 # del image_dataset, mask_dataset
 # print(image_dataset_balanced.shape, mask_dataset_balanced.shape)
 
-# Print statistics of the dataset and visually inspect the dataset
-show_statistics(image_dataset, mask_dataset)
-inspect_dataset(image_dataset, mask_dataset)
+# Train-validation-test split
+X_train, X_test, y_train, y_test = split_dataset(image_dataset, mask_dataset)
+del image_dataset, mask_dataset
+print(X_train.shape, X_test.shape)
+print(y_train.shape, y_test.shape)
 
 
 
