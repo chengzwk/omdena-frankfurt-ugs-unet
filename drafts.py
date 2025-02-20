@@ -94,3 +94,102 @@ for urban_type in urban_classes.keys():
         plot_samples(samples, f"Sample Masks - {urban_type}")
 
 print("Dataset processing complete. Metadata saved as 'dataset_metadata.json'.")
+
+
+
+import os
+import random
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+
+def normalize_by_layer(image_array):
+    """
+    Function to normalize image data to the same max(1) and min(0)
+    Since different layers(bands) have different scales, normalization will be done layer by layer
+    """
+    # Normalize by band
+    image_array = image_array.astype(np.float64)  # Convert dtype of image file from int to float64
+
+    for i in range(image_array.shape[2]):
+        layer_min = np.min(image_array[:, :, i])
+        layer_max = np.max(image_array[:, :, i])
+
+        try:
+            image_array[:, :, i] = (image_array[:, :, i] - layer_min) / (layer_max - layer_min)
+        except ZeroDivisionError:
+            print(f"Band {i} has zero variation (min = max = {layer_min}). Skipping normalization.")
+            image_array[:, :, i] = 0  # Set the band to default value 0
+
+    return image_array
+
+def plot_random_samples(image_dirs, dataset_dir, samples_per_dir=2):
+    """
+    Randomly selects images from multiple directories, reads corresponding masks,
+    converts fractional masks to binary, and plots them.
+
+    Parameters:
+    - image_dirs: List of image directories
+    - dataset_dir: Root dataset directory
+    - samples_per_dir: Number of samples to select per image directory
+    """
+    # Define color mapping for mask visualization
+    class_colors = {
+        2: "#808080",  # Gray (impervious)
+        3: "#ADFF2F",  # Light Green (low vegetation)
+        4: "#006400",  # Dark Green (trees)
+        5: "#1E90FF",  # Blue (water)
+        6: "#8B4513",  # Brown (clutter)
+    }
+
+    for i in image_dirs:
+        image_dir = os.path.join(dataset_dir, i)
+        mask_dir = os.path.join(dataset_dir, i + '_masks')
+
+        # Get list of image files
+        image_files = [f for f in os.listdir(image_dir) if f.endswith('.tif')]
+        selected_files = random.sample(image_files, min(samples_per_dir, len(image_files)))
+
+        for img_file in selected_files:
+            img_full_path = os.path.join(image_dir, img_file)
+            mask_file = img_file.replace(".tif", "_fractional_mask.tif")
+            mask_full_path = os.path.join(mask_dir, mask_file)
+
+            # Read and preprocess image
+            with open(img_full_path, "rb") as f:
+                with rasterio.open(f) as img:
+                    image = img.read()
+            image = np.transpose(image, [1, 2, 0])  # Move bands to last axis
+            image[np.isnan(image)] = 0  # Replace NaN with 0
+            image = image[:, :, (1, 2, 3)]  # Select RGB bands
+            image = normalize_by_layer(image)
+
+            # Read and preprocess mask
+            with open(mask_full_path, "rb") as m:
+                with rasterio.open(m) as msk:
+                    mask = msk.read()
+            mask = np.transpose(mask, [1, 2, 0])  # Move bands to last axis
+            mask[np.isnan(mask)] = 0  # Replace NaN with 0
+            mask = np.argmax(mask, axis=2, keepdims=True) + 2  # Convert to binary classes
+
+            # Plot Image and Mask
+            fig, axes = plt.subplots(1, 2, figsize=(10, 5))
+
+            axes[0].imshow(image)
+            axes[0].set_title(f"Image: {img_file}")
+
+            cmap = plt.cm.colors.ListedColormap([class_colors[c] for c in sorted(class_colors)])
+            axes[1].imshow(mask[:, :, 0], cmap=cmap)
+            axes[1].set_title(f"Mask: {mask_file}")
+
+            # Create a legend
+            legend_patches = [mpatches.Patch(color=class_colors[key], label=f"Class {key}") for key in class_colors]
+            fig.legend(handles=legend_patches, loc="center left", bbox_to_anchor=(1.01, 0.5), title="Legend")
+
+            plt.subplots_adjust(right=0.95)
+            plt.show()
+
+
+# Randomly select 2 images from each image directory,
+# plot the image and corresponding mask
+plot_random_samples(image_dirs, dataset_dir=dataset_dir, samples_per_dir=2)
