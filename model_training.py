@@ -1,19 +1,39 @@
 # End-to-end U-Net model training
 
-# Import packages
+# --- Import packages and functions ---
 import os
 import matplotlib.pyplot as plt
 import tensorflow as tf
-from focal_loss import BinaryFocalLoss
 from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.losses import SparseCategoricalCrossentropy
-from keras.callbacks import EarlyStopping
+from tensorflow.keras.losses import BinaryCrossentropy
+from tensorflow.keras import backend as K
 
 # Import functions from other scripts
 from data_preparation import read_file, split_dataset, show_statistics, inspect_dataset
 from data_augmentation import get_data_generators, my_image_mask_generator, inspect_generator
 from model_unet import unet_model
 
+# from focal_loss import BinaryFocalLoss
+# from tensorflow.keras.losses import SparseCategoricalCrossentropy
+# from tensorflow.keras.losses import CategoricalFocalCrossentropy
+# from keras.callbacks import EarlyStopping
+
+
+def formatted_print_shapes(X_train, X_val, X_test, y_train, y_val, y_test):
+    """
+    Prints the shapes of training, validation, and test data in a formatted way.
+    Also prints steps per epoch and validation steps if provided.
+    """
+    print("Data Shapes:")
+    print("-" * 20)
+    print(f"X_train: {X_train.shape}")
+    print(f"X_val:   {X_val.shape}")
+    print(f"X_test:  {X_test.shape}")
+    print("-" * 20)
+    print(f"y_train: {y_train.shape}")
+    print(f"y_val:   {y_val.shape}")
+    print(f"y_test:  {y_test.shape}")
+    print("-" * 20)
 
 def plot_accuracy(history_2):
     loss = history_2.history['loss']
@@ -37,10 +57,19 @@ def plot_accuracy(history_2):
     plt.legend()
     plt.show()
 
-# Load dataset
+
+# --- Data Loading and Preprocessing ---
+
 data_dir = os.path.expanduser("~/Documents/Omdena/FrankfurtGermanyChapter_UrbanGreenSpaceMappping/MULC")
 image_dir = 'VBWVA_8R'
-image_dataset, mask_dataset = read_file(image_dir, multiclass=False, if_subset=True, subset_size=100)
+subset_size = 10
+image_dataset, mask_dataset = read_file(
+    data_dir,
+    image_dir,
+    multiclass=False,
+    if_subset=True,
+    subset_size=subset_size
+)
 
 # Print statistics of the dataset and visually inspect the dataset
 show_statistics(image_dataset, mask_dataset)
@@ -49,35 +78,40 @@ inspect_dataset(image_dataset, mask_dataset)
 # Train-validation-test split
 X_train, X_val, X_test, y_train, y_val, y_test = split_dataset(image_dataset, mask_dataset)
 del image_dataset, mask_dataset
-print(X_train.shape, X_val.shape, X_test.shape)
-print(y_train.shape, y_val.shape, y_test.shape)
+formatted_print_shapes(X_train, X_val, X_test, y_train, y_val, y_test)
 
-# Data augmentation
-batch_size = 16
+# --- Data Augmentation ---
+
+batch_size = 2
 steps_per_epoch = len(X_train)//batch_size  # for generator
 validation_steps = len(X_val)//batch_size  # for generator
-print(steps_per_epoch, validation_steps)
+print(f"Steps per epoch: {steps_per_epoch}")
+print(f"Validation steps: {validation_steps}")
 image_generator, valid_img_generator, mask_generator, valid_mask_generator = \
     get_data_generators(X_train, X_val, y_train, y_val, batch_size=batch_size)
-
-# Inspect data generators
-inspect_generator(image_generator, mask_generator)
-inspect_generator(valid_img_generator, valid_mask_generator)
 
 # Combine image-mask generators
 train_generator = my_image_mask_generator(image_generator, mask_generator)
 validation_generator = my_image_mask_generator(valid_img_generator, valid_mask_generator)
 
+# Inspect generators
+inspect_generator(train_generator)
+inspect_generator(validation_generator)
+
+# --- Model Training ---
 # Build model
 model = unet_model(input_shape=(128, 128, 3), use_dropout=False)
+print(model.summary())
 
 # Compile model
-model.compile(optimizer = Adam(learning_rate = 1e-4),
-              loss = BinaryFocalLoss(gamma = 2),
+model.compile(optimizer=Adam(learning_rate = 1e-4),
+              # loss=BinaryFocalLoss(gamma = 2),
+              # loss=CategoricalFocalCrossentropy(gamma = 2),
+              loss=BinaryCrossentropy(from_logits=True),  # Pixel-wise binary cross-entropy loss
               metrics = ['accuracy', tf.keras.metrics.Precision(), tf.keras.metrics.Recall()])
 
 # Train model
-epochs = 50  # Set epochs and early stopping
+epochs = 5  # Set epochs and early stopping
 
 history_2 = model.fit(
     train_generator,
@@ -88,11 +122,12 @@ history_2 = model.fit(
     epochs = epochs
 )
 
-# save model
+# Save model
 model.save('unet.h5')
 
 # Plot the training and validation accuracy and loss at each epoch
 plot_accuracy(history_2)
+
 
 
 
