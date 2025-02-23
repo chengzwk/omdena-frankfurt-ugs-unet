@@ -9,6 +9,7 @@ import matplotlib.patches as mpatches
 import matplotlib.gridspec as gridspec
 from natsort import natsorted
 from sklearn.model_selection import train_test_split
+from tensorflow.keras.utils import to_categorical
 
 
 def print_progress_bar(iteration, total, length=40):
@@ -57,7 +58,7 @@ def convert_binary_mask(mask_array, multiclass=True, threshold=0.5):
         mask_array = mask_array[:, :, np.newaxis]
     return mask_array
 
-def read_file(image_dir, multiclass=True, if_subset=False, threshold=0.5, subset_size=None):
+def read_file(data_dir, image_dir, multiclass=True, if_subset=False, threshold=0.5, subset_size=None):
     """
     Read satellite image files and corresponding masks as numpy arrays,
     normalize image array to the same scale by band, and convert fractional masks into binary masks.
@@ -185,7 +186,7 @@ def show_statistics(image_dataset, mask_dataset):
         veg_percentage = (veg_count / total_pixels) * 100
         print(f"Number of vegetation pixels: {veg_count} ({veg_percentage:.2f}%)")
 
-def inspect_dataset(image_dataset, mask_dataset, sample_size=10):
+def inspect_dataset(image_dataset, mask_dataset, sample_size=2):
     """
     Randomly select and plot sample_size images and corresponding binary masks for visual inspection
     """
@@ -271,29 +272,43 @@ def split_dataset(image_dataset, mask_dataset, test_size=0.15, val_size=0.15, ra
 
     return X_train, X_val, X_test, y_train, y_val, y_test
 
+def categorical_mask_dataset(y_train, num_classes=2):
+    """Turns mask dataset (y_train, y_val, y_test) into categorical (one-hot encoded) format."""
+    train_masks_cat = to_categorical(y_train, num_classes=num_classes)
+    y_train_cat = train_masks_cat.reshape((y_train.shape[0], y_train.shape[1], y_train.shape[2], num_classes))
+    return y_train_cat
 
-# Define paths
-data_dir = os.path.expanduser("~/Documents/Omdena/FrankfurtGermanyChapter_UrbanGreenSpaceMappping/MULC")
 
-# Read image and mask files from selected dataset
-# image_dirs = sorted([d.replace('_masks', '') for d in os.listdir(data_dir) if d.endswith('_masks')])
-image_dir = 'VBWVA_8R'
-image_dataset, mask_dataset = read_file(image_dir, multiclass=False, if_subset=True, subset_size=100)
+if __name__ == "__main__":
+    # Define paths
+    data_dir = os.path.expanduser("~/Documents/Omdena/FrankfurtGermanyChapter_UrbanGreenSpaceMappping/MULC")
 
-# Print statistics of the dataset and visually inspect the dataset
-show_statistics(image_dataset, mask_dataset)
-inspect_dataset(image_dataset, mask_dataset)
+    # Read image and mask files from selected dataset
+    # image_dirs = sorted([d.replace('_masks', '') for d in os.listdir(data_dir) if d.endswith('_masks')])
+    image_dir = 'VBWVA_8R'
+    subset_size = 100
+    image_dataset, mask_dataset = read_file(data_dir, image_dir, multiclass=False, if_subset=True, subset_size=subset_size)
 
-# Get the balanced dataset
-# image_dataset_balanced, mask_dataset_balanced = remove_images(image_dataset, mask_dataset, 0.86)
-# del image_dataset, mask_dataset
-# print(image_dataset_balanced.shape, mask_dataset_balanced.shape)
+    # Print statistics of the dataset and visually inspect the dataset
+    show_statistics(image_dataset, mask_dataset)
+    inspect_dataset(image_dataset, mask_dataset)
 
-# Train-validation-test split
-X_train, X_test, y_train, y_test = split_dataset(image_dataset, mask_dataset)
-del image_dataset, mask_dataset
-print(X_train.shape, X_test.shape)
-print(y_train.shape, y_test.shape)
+    # Get the balanced dataset
+    # image_dataset_balanced, mask_dataset_balanced = remove_images(image_dataset, mask_dataset, 0.86)
+    # del image_dataset, mask_dataset
+    # print(image_dataset_balanced.shape, mask_dataset_balanced.shape)
+
+    # Train-validation-test split
+    X_train, X_val, X_test, y_train, y_val, y_test = split_dataset(image_dataset, mask_dataset)
+    del image_dataset, mask_dataset
+    print(X_train.shape, X_val.shape, X_test.shape)
+    print(y_train.shape, y_val.shape, y_test.shape)
+
+    # Mask dataset to categorical
+    y_train_cat = categorical_mask_dataset(y_train)
+    y_val_cat = categorical_mask_dataset(y_val)
+    y_test_cat = categorical_mask_dataset(y_test)
+    print(y_train_cat.shape, y_val_cat.shape, y_test_cat.shape)
 
 
 
