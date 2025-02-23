@@ -1,8 +1,7 @@
 # Data augmentation was performed to expand image dataset and to reduce overfitting.
 import numpy as np
 import matplotlib.pyplot as plt
-from keras.preprocessing.image import ImageDataGenerator
-
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
 def get_data_generators(X_train, X_val, y_train, y_val, use_augmentation=True, batch_size=16, seed=24):
     """Create ImageDataGenerator for images and masks."""
@@ -55,27 +54,28 @@ def my_image_mask_generator(image_generator, mask_generator):
     for (img, mask) in train_generator:
         yield (img, mask)
 
-def inspect_generator(image_generator, mask_generator):
-    x = image_generator.next()
-    y = mask_generator.next()
+def inspect_generator(train_generator):
+    """
+    Inspects a batch from a generator, displaying each image and mask pair on a single plot.
+    """
+    images, masks = next(train_generator)
+    # batch_size = images.shape[0]
 
-    for i in range(0, 1):
-        plt.figure(figsize=(8, 4))
-        image = x[i]
-        mask = y[i]
-        plt.subplot(1, 2, 1)
-        plt.imshow(image[:, :, ])
+    fig, axes = plt.subplots(2, 2, figsize=(8, 6))
 
-        plt.subplot(1, 2, 2)
-        plt.imshow(mask[:, :, 0], cmap='gray')
-        plt.show()
+    for i in range(0, 2):
+        # Display image
+        axes[i, 0].imshow(images[i])
+        axes[i, 0].set_title(f"Image {i}")
+        axes[i, 0].axis('off')  # Turn off axis labels
 
+        # Display mask
+        axes[i, 1].imshow(masks[i][:, :, 0], cmap='gray')
+        axes[i, 1].set_title(f"Mask {i}")
+        axes[i, 1].axis('off')  # Turn off axis labels
 
-"""
-train_generator = my_image_mask_generator(image_generator, mask_generator)
-validation_generator = my_image_mask_generator(valid_img_generator, valid_mask_generator)
-# train_generator and validation_generator can be directly used in model.fit()
-"""
+    plt.tight_layout() #prevents overlapping of titles and axis labels
+    plt.show()
 
 
 

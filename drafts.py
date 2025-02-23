@@ -193,3 +193,24 @@ def plot_random_samples(image_dirs, dataset_dir, samples_per_dir=2):
 # Randomly select 2 images from each image directory,
 # plot the image and corresponding mask
 plot_random_samples(image_dirs, dataset_dir=dataset_dir, samples_per_dir=2)
+
+
+def iou(y_true, y_pred):
+    """Calculates Intersection over Union (IoU) / Jaccard Index."""
+    intersection = K.sum(K.abs(y_true * y_pred), axis=[1, 2, 3])
+    union = K.sum(y_true, axis=[1, 2, 3]) + K.sum(y_pred, axis=[1, 2, 3]) - intersection
+    return K.mean((intersection + K.epsilon()) / (union + K.epsilon()), axis=0)
+
+def f1_score(y_true, y_pred):
+    """Calculates F1 Score (harmonic mean of precision and recall)."""
+    true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)), axis=[1, 2, 3])
+    predicted_positives = K.sum(K.round(K.clip(y_pred, 0, 1)), axis=[1, 2, 3])
+    possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)), axis=[1, 2, 3])
+    precision = true_positives / (predicted_positives + K.epsilon())
+    recall = true_positives / (possible_positives + K.epsilon())
+    return K.mean(2 * (precision * recall) / (precision + recall + K.epsilon()))
+
+# Compile the model
+model.compile(optimizer=Adam(learning_rate=1e-4),
+              loss=BinaryCrossentropy(from_logits=True),  # Pixel-wise binary cross-entropy loss
+              metrics=['accuracy', iou, f1_score])
