@@ -214,3 +214,6 @@ def f1_score(y_true, y_pred):
 model.compile(optimizer=Adam(learning_rate=1e-4),
               loss=BinaryCrossentropy(from_logits=True),  # Pixel-wise binary cross-entropy loss
               metrics=['accuracy', iou, f1_score])
+
+# loss=BinaryFocalLoss(gamma = 2),
+# loss=CategoricalFocalCrossentropy(gamma = 2),

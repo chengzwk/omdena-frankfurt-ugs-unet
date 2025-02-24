@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.losses import BinaryCrossentropy
+from tensorflow.keras.losses import BinaryFocalCrossentropy
 from tensorflow.keras import backend as K
 import dagshub
 import mlflow
@@ -111,9 +112,8 @@ with mlflow.start_run():
 
     # Compile model
     model.compile(optimizer=Adam(learning_rate = 1e-4),
-                  # loss=BinaryFocalLoss(gamma = 2),
-                  # loss=CategoricalFocalCrossentropy(gamma = 2),
-                  loss=BinaryCrossentropy(from_logits=True),  # Pixel-wise binary cross-entropy loss
+                  loss=BinaryFocalCrossentropy(from_logits=True),  # Pixel-wise binary focal cross-entropy loss
+                  # loss=BinaryCrossentropy(from_logits=True),  # Pixel-wise binary cross-entropy loss
                   metrics = ['accuracy', tf.keras.metrics.Precision(), tf.keras.metrics.Recall()])
 
     # Train model
