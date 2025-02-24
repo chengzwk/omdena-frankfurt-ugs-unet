@@ -15,6 +15,7 @@ import mlflow
 from data_preparation import read_file, split_dataset, show_statistics, inspect_dataset
 from data_augmentation import get_data_generators, my_image_mask_generator, inspect_generator
 from model_unet import unet_model
+from model_evaluation_and_prediction import run_evaluation
 
 # from focal_loss import BinaryFocalLoss
 # from tensorflow.keras.losses import SparseCategoricalCrossentropy
@@ -22,8 +23,8 @@ from model_unet import unet_model
 # from keras.callbacks import EarlyStopping
 
 # Track experiment with MLflow
-dagshub.init(repo_name="omdena-frankfurt-ugs-unet", repo_owner="chengzwk")
-mlflow.tensorflow.autolog()
+# dagshub.init(repo_name="omdena-frankfurt-ugs-unet", repo_owner="chengzwk")
+# mlflow.tensorflow.autolog()
 
 def formatted_print_shapes(X_train, X_val, X_test, y_train, y_val, y_test):
     """
@@ -105,35 +106,37 @@ inspect_generator(train_generator)
 inspect_generator(validation_generator)
 
 # --- Model Training ---
-with mlflow.start_run():
-    # Build model
-    model = unet_model(input_shape=(128, 128, 3), use_dropout=False)
-    print(model.summary())
+# with mlflow.start_run():
+# Build model
+model = unet_model(input_shape=(128, 128, 3), use_dropout=False)
+print(model.summary())
 
-    # Compile model
-    model.compile(optimizer=Adam(learning_rate = 1e-4),
-                  loss=BinaryFocalCrossentropy(from_logits=True),  # Pixel-wise binary focal cross-entropy loss
-                  # loss=BinaryCrossentropy(from_logits=True),  # Pixel-wise binary cross-entropy loss
-                  metrics = ['accuracy', tf.keras.metrics.Precision(), tf.keras.metrics.Recall()])
+# Compile model
+model.compile(optimizer=Adam(learning_rate = 1e-4),
+              loss=BinaryFocalCrossentropy(from_logits=True),  # Pixel-wise binary focal cross-entropy loss
+              # loss=BinaryCrossentropy(from_logits=True),  # Pixel-wise binary cross-entropy loss
+              metrics = ['accuracy', tf.keras.metrics.Precision(), tf.keras.metrics.Recall()])
 
-    # Train model
-    epochs = 5  # Set epochs and early stopping
+# Train model
+epochs = 2  # Set epochs and early stopping
 
-    history_2 = model.fit(
-        train_generator,
-        validation_data=validation_generator,
-        batch_size=batch_size,
-        steps_per_epoch=steps_per_epoch,
-        validation_steps=validation_steps,
-        epochs = epochs
-    )
+history_2 = model.fit(
+    train_generator,
+    validation_data=validation_generator,
+    batch_size=batch_size,
+    steps_per_epoch=steps_per_epoch,
+    validation_steps=validation_steps,
+    epochs = epochs
+)
 
-    # Save model
-    model.save('unet.h5')
+# Save model
+model.save('unet.keras')
 
 # Plot the training and validation accuracy and loss at each epoch
 plot_accuracy(history_2)
 
+# --- Model Prediction and Evaluation ---
+run_evaluation(model, X_test, y_test)
 
 
 
