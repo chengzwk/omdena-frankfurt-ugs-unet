@@ -7,6 +7,8 @@ import tensorflow as tf
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.losses import BinaryCrossentropy
 from tensorflow.keras import backend as K
+import dagshub
+import mlflow
 
 # Import functions from other scripts
 from data_preparation import read_file, split_dataset, show_statistics, inspect_dataset
@@ -18,6 +20,9 @@ from model_unet import unet_model
 # from tensorflow.keras.losses import CategoricalFocalCrossentropy
 # from keras.callbacks import EarlyStopping
 
+# Track experiment with MLflow
+dagshub.init(repo_name="omdena-frankfurt-ugs-unet", repo_owner="chengzwk")
+mlflow.tensorflow.autolog()
 
 def formatted_print_shapes(X_train, X_val, X_test, y_train, y_val, y_test):
     """
@@ -88,7 +93,7 @@ validation_steps = len(X_val)//batch_size  # for generator
 print(f"Steps per epoch: {steps_per_epoch}")
 print(f"Validation steps: {validation_steps}")
 image_generator, valid_img_generator, mask_generator, valid_mask_generator = \
-    get_data_generators(X_train, X_val, y_train, y_val, batch_size=batch_size)
+    get_data_generators(X_train, X_val, y_train, y_val, use_augmentation=False, batch_size=batch_size)
 
 # Combine image-mask generators
 train_generator = my_image_mask_generator(image_generator, mask_generator)
@@ -99,31 +104,32 @@ inspect_generator(train_generator)
 inspect_generator(validation_generator)
 
 # --- Model Training ---
-# Build model
-model = unet_model(input_shape=(128, 128, 3), use_dropout=False)
-print(model.summary())
+with mlflow.start_run():
+    # Build model
+    model = unet_model(input_shape=(128, 128, 3), use_dropout=False)
+    print(model.summary())
 
-# Compile model
-model.compile(optimizer=Adam(learning_rate = 1e-4),
-              # loss=BinaryFocalLoss(gamma = 2),
-              # loss=CategoricalFocalCrossentropy(gamma = 2),
-              loss=BinaryCrossentropy(from_logits=True),  # Pixel-wise binary cross-entropy loss
-              metrics = ['accuracy', tf.keras.metrics.Precision(), tf.keras.metrics.Recall()])
+    # Compile model
+    model.compile(optimizer=Adam(learning_rate = 1e-4),
+                  # loss=BinaryFocalLoss(gamma = 2),
+                  # loss=CategoricalFocalCrossentropy(gamma = 2),
+                  loss=BinaryCrossentropy(from_logits=True),  # Pixel-wise binary cross-entropy loss
+                  metrics = ['accuracy', tf.keras.metrics.Precision(), tf.keras.metrics.Recall()])
 
-# Train model
-epochs = 5  # Set epochs and early stopping
+    # Train model
+    epochs = 5  # Set epochs and early stopping
 
-history_2 = model.fit(
-    train_generator,
-    validation_data=validation_generator,
-    batch_size=batch_size,
-    steps_per_epoch=steps_per_epoch,
-    validation_steps=validation_steps,
-    epochs = epochs
-)
+    history_2 = model.fit(
+        train_generator,
+        validation_data=validation_generator,
+        batch_size=batch_size,
+        steps_per_epoch=steps_per_epoch,
+        validation_steps=validation_steps,
+        epochs = epochs
+    )
 
-# Save model
-model.save('unet.h5')
+    # Save model
+    model.save('unet.h5')
 
 # Plot the training and validation accuracy and loss at each epoch
 plot_accuracy(history_2)
