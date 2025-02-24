@@ -48,7 +48,7 @@ def decoder_block(input, skip_features, num_filters, use_dropout=True):
     return x
 
 # Build Unet using the blocks
-def unet_model(input_shape, n_filters=64, use_dropout=True):
+def unet_model(input_shape, from_logits=False, n_filters=64, use_dropout=True):
     inputs = Input(input_shape)
 
     s1, p1 = encoder_block(inputs, n_filters, use_dropout=use_dropout)  # number of filters can be customized
@@ -63,7 +63,10 @@ def unet_model(input_shape, n_filters=64, use_dropout=True):
     d3 = decoder_block(d2, s2, n_filters * 2, use_dropout=use_dropout)
     d4 = decoder_block(d3, s1, n_filters, use_dropout=use_dropout)
 
-    # outputs = Conv2D(1, 1, padding="same", activation="sigmoid")(d4)  # the output will be a one-channel image since it's a binary segmentation
-    outputs = Conv2D(1, 1, padding="same", activation=None)(d4)  # Use Binary cross entropy loss and from_logits=True
+    if from_logits:
+        outputs = Conv2D(1, 1, padding="same", activation=None)(d4)  # Use Binary cross entropy loss from_logits=True
+    else:
+        outputs = Conv2D(1, 1, padding="same", activation="sigmoid")(d4)  # the output will be a one-channel image since it's a binary segmentation
+
     model = Model(inputs, outputs, name="U-Net")
     return model
