@@ -48,20 +48,20 @@ def decoder_block(input, skip_features, num_filters, use_dropout=True):
     return x
 
 # Build Unet using the blocks
-def unet_model(input_shape, use_dropout=True):
+def unet_model(input_shape, n_filters=64, use_dropout=True):
     inputs = Input(input_shape)
 
-    s1, p1 = encoder_block(inputs, 64, use_dropout=use_dropout)  # number of filters can be customized
-    s2, p2 = encoder_block(p1, 128, use_dropout=use_dropout)
-    s3, p3 = encoder_block(p2, 256, use_dropout=use_dropout)
-    s4, p4 = encoder_block(p3, 512, use_dropout=use_dropout)
+    s1, p1 = encoder_block(inputs, n_filters, use_dropout=use_dropout)  # number of filters can be customized
+    s2, p2 = encoder_block(p1, n_filters * 2, use_dropout=use_dropout)
+    s3, p3 = encoder_block(p2, n_filters * 4, use_dropout=use_dropout)
+    s4, p4 = encoder_block(p3, n_filters * 8, use_dropout=use_dropout)
 
-    b1 = conv_block(p4, 1024, use_dropout=use_dropout) #Bridge
+    b1 = conv_block(p4, n_filters * 16, use_dropout=use_dropout) #Bridge
 
-    d1 = decoder_block(b1, s4, 512, use_dropout=use_dropout)
-    d2 = decoder_block(d1, s3, 256, use_dropout=use_dropout)
-    d3 = decoder_block(d2, s2, 128, use_dropout=use_dropout)
-    d4 = decoder_block(d3, s1, 64, use_dropout=use_dropout)
+    d1 = decoder_block(b1, s4, n_filters * 8, use_dropout=use_dropout)
+    d2 = decoder_block(d1, s3, n_filters * 4, use_dropout=use_dropout)
+    d3 = decoder_block(d2, s2, n_filters * 2, use_dropout=use_dropout)
+    d4 = decoder_block(d3, s1, n_filters, use_dropout=use_dropout)
 
     # outputs = Conv2D(1, 1, padding="same", activation="sigmoid")(d4)  # the output will be a one-channel image since it's a binary segmentation
     outputs = Conv2D(1, 1, padding="same", activation=None)(d4)  # Use Binary cross entropy loss and from_logits=True
