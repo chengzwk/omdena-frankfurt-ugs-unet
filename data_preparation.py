@@ -278,6 +278,22 @@ def categorical_mask_dataset(y_train, num_classes=2):
     y_train_cat = train_masks_cat.reshape((y_train.shape[0], y_train.shape[1], y_train.shape[2], num_classes))
     return y_train_cat
 
+def formatted_print_shapes(X_train, X_val, X_test, y_train, y_val, y_test):
+    """
+    Prints the shapes of training, validation, and test data in a formatted way.
+    Also prints steps per epoch and validation steps if provided.
+    """
+    print("Data Shapes:")
+    print("-" * 20)
+    print(f"X_train: {X_train.shape}")
+    print(f"X_val:   {X_val.shape}")
+    print(f"X_test:  {X_test.shape}")
+    print("-" * 20)
+    print(f"y_train: {y_train.shape}")
+    print(f"y_val:   {y_val.shape}")
+    print(f"y_test:  {y_test.shape}")
+    print("-" * 20)
+
 
 if __name__ == "__main__":
     # Define paths

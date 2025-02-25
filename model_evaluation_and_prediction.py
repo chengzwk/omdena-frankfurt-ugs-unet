@@ -5,6 +5,17 @@ from tensorflow.keras.metrics import IoU, MeanIoU
 from sklearn.metrics import roc_curve, auc
 
 
+import numpy as np
+
+def calculate_f1_score(precision, recall):
+    """Calculates the F1 score and avoids division by zero."""
+    denominator = precision + recall
+    if denominator == 0:
+        f1_score = 0.0
+    else:
+        f1_score = 2 * precision * recall / (precision + recall)
+    return f1_score
+
 def predict(model, X_test, threshold=0.5):
     """Generate predictions and apply thresholding."""
     y_pred = model.predict(X_test)
@@ -14,7 +25,7 @@ def predict(model, X_test, threshold=0.5):
 def evaluate_model(model, X_test, y_test):
     """Evaluate model on test set and return loss, accuracy, precision, and recall."""
     loss, acc, precision, recall = model.evaluate(X_test, y_test, verbose=0)
-    f1_score = 2 * precision * recall / (precision + recall)
+    f1_score = calculate_f1_score(precision, recall)
 
     print(f"Loss: {loss:.4f}")
     print(f"Accuracy: {acc:.4f}")

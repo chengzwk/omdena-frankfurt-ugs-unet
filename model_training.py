@@ -12,7 +12,7 @@ import dagshub
 import mlflow
 
 # Import functions from other scripts
-from data_preparation import read_file, split_dataset, show_statistics, inspect_dataset
+from data_preparation import read_file, split_dataset, show_statistics, inspect_dataset, formatted_print_shapes
 from data_augmentation import get_data_generators, my_image_mask_generator, inspect_generator
 from model_unet import unet_model
 from model_evaluation_and_prediction import run_evaluation
@@ -26,21 +26,6 @@ from model_evaluation_and_prediction import run_evaluation
 # dagshub.init(repo_name="omdena-frankfurt-ugs-unet", repo_owner="chengzwk")
 # mlflow.tensorflow.autolog()
 
-def formatted_print_shapes(X_train, X_val, X_test, y_train, y_val, y_test):
-    """
-    Prints the shapes of training, validation, and test data in a formatted way.
-    Also prints steps per epoch and validation steps if provided.
-    """
-    print("Data Shapes:")
-    print("-" * 20)
-    print(f"X_train: {X_train.shape}")
-    print(f"X_val:   {X_val.shape}")
-    print(f"X_test:  {X_test.shape}")
-    print("-" * 20)
-    print(f"y_train: {y_train.shape}")
-    print(f"y_val:   {y_val.shape}")
-    print(f"y_test:  {y_test.shape}")
-    print("-" * 20)
 
 def plot_accuracy(history_2):
     loss = history_2.history['loss']
