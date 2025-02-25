@@ -29,11 +29,11 @@ def train_model(X_train, y_train, X_val, y_val, model_path='model.keras', zero_i
         use_dropout=False
     )
 
-    model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=3e-4),
+    model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4),
                   loss=tf.keras.losses.BinaryFocalCrossentropy(from_logits=from_logits),
                   metrics=['accuracy',
-                           tf.keras.metrics.Precision(thresholds=0),
-                           tf.keras.metrics.Recall(thresholds=0)
+                           tf.keras.metrics.Precision(),
+                           tf.keras.metrics.Recall()
                            ])
 
     model.fit(X_train, y_train, validation_data=(X_val, y_val), epochs=10, batch_size=8)
@@ -80,3 +80,8 @@ run_evaluation(model_normal, X_val, y_val)
 
 print("\nEvaluating zero-input baseline model...\n")
 run_evaluation(model_zero, X_val, y_val)
+
+
+# Result: Model learned from input
+# Normal model showed better training performance, while zero-input model showed no learning.
+# Normal model showed overfitting.
