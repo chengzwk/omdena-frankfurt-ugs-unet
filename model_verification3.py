@@ -58,6 +58,9 @@ X_train, X_val, X_test, y_train, y_val, y_test = split_dataset(image_dataset, ma
 del image_dataset, mask_dataset
 formatted_print_shapes(X_train, X_val, X_test, y_train, y_val, y_test)
 
+np.save('X_test.npy', X_test)
+np.save('y_test.npy', y_test)
+
 # --- Train Models ---
 
 # Train normal model
