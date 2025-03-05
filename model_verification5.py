@@ -40,8 +40,8 @@ def get_high_capacity_unet():
     model = unet_model(input_shape=(128, 128, 3), n_filters=64, use_dropout=False)  # Increase filters
     model.compile(
         optimizer=tf.keras.optimizers.Adam(learning_rate=3e-4),
-        # loss=tf.keras.losses.BinaryFocalCrossentropy(),
-        loss=tf.keras.losses.BinaryCrossentropy(),
+        loss=tf.keras.losses.BinaryFocalCrossentropy(),
+        # loss=tf.keras.losses.BinaryCrossentropy(),
         metrics=['accuracy', tf.keras.metrics.Precision(), tf.keras.metrics.Recall()]
     )
     return model
@@ -116,6 +116,7 @@ if __name__ == "__main__":
 
 # Result: Model reached near-zero loss on 2 training images
 # loss = binary cross entropy loss
-#
+# accuracy: 1.0000 - loss: 0.0091 - precision: 1.0000 - recall: 1.0000
 # loss = binary focal loss
 # accuracy: 1.0000 - loss: 0.0066 - precision: 1.0000 - recall: 1.0000
+# Note: the visualization result seemed to show that the model memorized the input image, instead of the mask labels
