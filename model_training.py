@@ -2,11 +2,13 @@
 
 # --- Import packages and functions ---
 import os
+import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.losses import BinaryCrossentropy
 from tensorflow.keras.losses import BinaryFocalCrossentropy
+from tensorflow.keras.callbacks import Callback
 from tensorflow.keras import backend as K
 import dagshub
 import mlflow
@@ -15,7 +17,7 @@ import mlflow
 from data_preparation import read_file, split_dataset, show_statistics, inspect_dataset, formatted_print_shapes
 from data_augmentation import get_data_generators, my_image_mask_generator, inspect_generator
 from model_unet import unet_model
-from model_evaluation_and_prediction import run_evaluation
+from model_evaluation_and_prediction import run_evaluation, predict, visualize_predictions
 
 # from focal_loss import BinaryFocalLoss
 # from tensorflow.keras.losses import SparseCategoricalCrossentropy
@@ -48,6 +50,18 @@ def plot_accuracy(history_2):
     plt.ylabel('Accuracy')
     plt.legend()
     plt.show()
+
+class PredictionCallback(Callback):
+    def __init__(self, model, X_test, y_test, interval=5):
+        super().__init__()
+        self.X_test = X_test
+        self.y_test = y_test
+        self.interval = interval  # Run every 'interval' epochs
+
+    def on_epoch_end(self, epoch, logs=None):
+        if (epoch + 1) % self.interval == 0:
+            y_pred, y_pred_thresholded = predict(self.model, X_test)
+            visualize_predictions(self.X_test, self.y_test, y_pred_thresholded, title=f"Epoch {epoch+1} Predictions")
 
 
 # --- Data Loading and Preprocessing ---
@@ -93,17 +107,24 @@ inspect_generator(validation_generator)
 # --- Model Training ---
 # with mlflow.start_run():
 # Build model
-model = unet_model(input_shape=(128, 128, 3), use_dropout=False)
+model = unet_model(input_shape=(128, 128, 3), n_filters=64, use_dropout=False)
 print(model.summary())
 
 # Compile model
-model.compile(optimizer=Adam(learning_rate = 1e-4),
-              loss=BinaryFocalCrossentropy(from_logits=True),  # Pixel-wise binary focal cross-entropy loss
-              # loss=BinaryCrossentropy(from_logits=True),  # Pixel-wise binary cross-entropy loss
-              metrics = ['accuracy', tf.keras.metrics.Precision(), tf.keras.metrics.Recall()])
+model.compile(
+    optimizer=Adam(learning_rate = 1e-4),
+    loss=BinaryFocalCrossentropy(),  # Pixel-wise binary focal cross-entropy loss
+    # loss=BinaryCrossentropy(),  # Pixel-wise binary cross-entropy loss
+    metrics = ['accuracy', tf.keras.metrics.Precision(), tf.keras.metrics.Recall()]
+)
+
+# Select a fixed test batch for visualization
+num_samples_to_visualize = 2
+X_test_fixed = X_test[:num_samples_to_visualize]
+y_test_fixed = y_test[:num_samples_to_visualize]
 
 # Train model
-epochs = 2  # Set epochs and early stopping
+epochs = 10  # Set epochs and early stopping
 
 history_2 = model.fit(
     train_generator,
@@ -111,7 +132,8 @@ history_2 = model.fit(
     batch_size=batch_size,
     steps_per_epoch=steps_per_epoch,
     validation_steps=validation_steps,
-    epochs = epochs
+    epochs = epochs,
+    callbacks=[PredictionCallback(model, X_test_fixed, y_test_fixed, interval=2)]
 )
 
 # Save model
