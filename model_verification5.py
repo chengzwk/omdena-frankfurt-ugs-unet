@@ -37,11 +37,11 @@ def load_small_batch(data_dir, image_dir, batch_size):
 # ==== Step 2: Modify Model for High Capacity ====
 def get_high_capacity_unet():
     """Create a U-Net model with increased complexity to encourage overfitting."""
-    model = unet_model(input_shape=(128, 128, 3), n_filters=64, use_dropout=False)  # Increase filters
+    model = unet_model(input_shape=(128, 128, 3), from_logits=True, n_filters=32, use_dropout=False)  # Increase filters
     model.compile(
         optimizer=tf.keras.optimizers.Adam(learning_rate=3e-4),
-        loss=tf.keras.losses.BinaryFocalCrossentropy(),
-        # loss=tf.keras.losses.BinaryCrossentropy(),
+        # loss=tf.keras.losses.BinaryFocalCrossentropy(from_logits=True),
+        loss=tf.keras.losses.BinaryCrossentropy(from_logits=True),
         metrics=['accuracy', tf.keras.metrics.Precision(), tf.keras.metrics.Recall()]
     )
     return model
@@ -65,7 +65,9 @@ def train_on_small_batch(model, X_train, y_train, epochs=1000):
 # ==== Step 4: Visualize Predictions ====
 def visualize_predictions(model, X_train, y_train, threshold=0.5):
     """Plot ground truth vs predicted masks."""
-    y_pred = model.predict(X_train)
+    # y_pred = model.predict(X_train)
+    y_pred = model(X_train, training=True)
+    y_pred = tf.sigmoid(y_pred).numpy()
     y_pred_thresholded = (y_pred >= threshold).astype(int)
 
     fig, axes = plt.subplots(len(X_train), 4, figsize=(10, 5 * len(X_train)))
@@ -87,10 +89,7 @@ def visualize_predictions(model, X_train, y_train, threshold=0.5):
 
 
 # ==== Step 5: Evaluate Final Performance ====
-def run_overfit_experiment(data_dir, image_dir, batch_size, epochs):
-    # Load small batch
-    X_train, y_train = load_small_batch(data_dir, image_dir, batch_size=batch_size)
-
+def run_overfit_experiment(data_dir, image_dir, batch_size, epochs, model_name):
     # Get a high-capacity model
     model = get_high_capacity_unet()
 
@@ -98,11 +97,9 @@ def run_overfit_experiment(data_dir, image_dir, batch_size, epochs):
     with mlflow.start_run():
         train_on_small_batch(model, X_train, y_train, epochs=epochs)
 
-    # Visualize results
-    visualize_predictions(model, X_train, y_train, threshold=0.5)
-
-    # Evaluate and ensure loss is near-zero
-    run_evaluation(model, X_train, y_train)
+    # Save model
+    model.save(model_name)
+    return model
 
 
 # ==== Run Experiment ====
@@ -110,13 +107,24 @@ if __name__ == "__main__":
     data_dir = os.path.expanduser("~/Documents/Omdena/FrankfurtGermanyChapter_UrbanGreenSpaceMappping/MULC")
     image_dir = 'VBWVA_8R'
     batch_size = 2
-    epochs = 100
-    run_overfit_experiment(data_dir, image_dir, batch_size, epochs)
+    epochs = 200
+    X_train, y_train = load_small_batch(data_dir, image_dir, batch_size=batch_size)  # Load small batch
+    model_name = 'unet_smallbatch.keras'
+
+    if not os.path.exists(model_name):
+        model = run_overfit_experiment(data_dir, image_dir, batch_size, epochs, model_name)
+    else:
+        model = tf.keras.models.load_model(model_name)
+
+    visualize_predictions(model, X_train, y_train, threshold=0.5)
+    run_evaluation(model, X_train, y_train)
 
 
 # Result: Model reached near-zero loss on 2 training images
 # loss = binary cross entropy loss
 # accuracy: 1.0000 - loss: 0.0091 - precision: 1.0000 - recall: 1.0000
+# Visualization shows predicted mask aligns perfectly with ground truth
 # loss = binary focal loss
 # accuracy: 1.0000 - loss: 0.0066 - precision: 1.0000 - recall: 1.0000
-# Note: the visualization result seemed to show that the model memorized the input image, instead of the mask labels
+# Visualization shows predicted mask aligns perfectly with ground truth
+
