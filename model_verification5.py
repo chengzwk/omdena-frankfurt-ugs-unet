@@ -28,7 +28,6 @@ def load_small_batch(data_dir, image_dir, batch_size):
         data_dir,
         image_dir,
         multiclass=False,
-        if_subset=True,
         subset_size=batch_size
     )
     return X_train, y_train

@@ -50,7 +50,6 @@ image_dataset, mask_dataset = read_file(
     data_dir,
     image_dir,
     multiclass=False,
-    if_subset=True,
     subset_size=subset_size
 )
 
