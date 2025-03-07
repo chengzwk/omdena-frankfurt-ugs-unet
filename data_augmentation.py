@@ -56,23 +56,23 @@ def my_image_mask_generator(image_generator, mask_generator):
 
 def inspect_generator(train_generator):
     """
-    Inspects a batch from a generator, displaying each image and mask pair on a single plot.
+    Inspects the fisrt 2 images from a batch from a generator, displaying each image and mask pair on a single plot.
     """
     images, masks = next(train_generator)
     # batch_size = images.shape[0]
 
-    fig, axes = plt.subplots(2, 2, figsize=(8, 6))
-
     for i in range(0, 2):
+        fig, axes = plt.subplots(1, 2, figsize=(8, 6))
+
         # Display image
-        axes[i, 0].imshow(images[i])
-        axes[i, 0].set_title(f"Image {i}")
-        axes[i, 0].axis('off')  # Turn off axis labels
+        axes[0].imshow(images[i])
+        axes[0].set_title(f"Image {i}")
+        axes[0].axis('off')  # Turn off axis labels
 
         # Display mask
-        axes[i, 1].imshow(masks[i][:, :, 0], cmap='gray')
-        axes[i, 1].set_title(f"Mask {i}")
-        axes[i, 1].axis('off')  # Turn off axis labels
+        axes[1].imshow(masks[i][:, :, 0], cmap='gray')
+        axes[1].set_title(f"Mask {i}")
+        axes[1].axis('off')  # Turn off axis labels
 
     plt.tight_layout() #prevents overlapping of titles and axis labels
     plt.show()

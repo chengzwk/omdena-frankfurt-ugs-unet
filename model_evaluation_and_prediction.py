@@ -18,8 +18,12 @@ def calculate_f1_score(precision, recall):
 
 def predict(model, X_test, threshold=0.5):
     """Generate predictions and apply thresholding."""
-    y_pred = model.predict(X_test)
-    y_pred_thresholded = (y_pred >= 0.5).astype(int)
+    # y_pred = model.predict(X_test)
+    # y_pred_thresholded = (y_pred >= 0.5).astype(int)
+    y_pred = model(X_test, training=True)
+    y_pred = tf.sigmoid(y_pred).numpy()
+    y_pred_thresholded = (y_pred >= threshold).astype(int)
+
     return y_pred, y_pred_thresholded
 
 def evaluate_model(model, X_test, y_test):
@@ -94,7 +98,7 @@ def visualize_predictions(X, y_true, y_pred, title="Predictions vs. Ground Truth
 
     plt.suptitle(title, fontsize=14)
     plt.tight_layout()
-    plt.show()
+    plt.savefig(f"{title}.png")
 
 def run_evaluation(model, X_test, y_test):
     """Run all evaluation steps."""

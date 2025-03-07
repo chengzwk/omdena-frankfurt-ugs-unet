@@ -10,8 +10,6 @@ from tensorflow.keras.losses import BinaryCrossentropy
 from tensorflow.keras.losses import BinaryFocalCrossentropy
 from tensorflow.keras.callbacks import Callback
 from tensorflow.keras import backend as K
-import dagshub
-import mlflow
 
 # Import functions from other scripts
 from data_preparation import read_file, split_dataset, show_statistics, inspect_dataset, formatted_print_shapes
@@ -25,8 +23,10 @@ from model_evaluation_and_prediction import run_evaluation, predict, visualize_p
 # from keras.callbacks import EarlyStopping
 
 # Track experiment with MLflow
-# dagshub.init(repo_name="omdena-frankfurt-ugs-unet", repo_owner="chengzwk")
-# mlflow.tensorflow.autolog()
+import dagshub
+import mlflow
+dagshub.init(repo_name="omdena-frankfurt-ugs-unet", repo_owner="chengzwk")
+mlflow.tensorflow.autolog()
 
 
 def plot_accuracy(history_2):
@@ -68,12 +68,11 @@ class PredictionCallback(Callback):
 
 data_dir = os.path.expanduser("~/Documents/Omdena/FrankfurtGermanyChapter_UrbanGreenSpaceMappping/MULC")
 image_dir = 'VBWVA_8R'
-subset_size = 10
+subset_size = 320
 image_dataset, mask_dataset = read_file(
     data_dir,
     image_dir,
     multiclass=False,
-    if_subset=True,
     subset_size=subset_size
 )
 
@@ -88,7 +87,7 @@ formatted_print_shapes(X_train, X_val, X_test, y_train, y_val, y_test)
 
 # --- Data Augmentation ---
 
-batch_size = 2
+batch_size = 16
 steps_per_epoch = len(X_train)//batch_size  # for generator
 validation_steps = len(X_val)//batch_size  # for generator
 print(f"Steps per epoch: {steps_per_epoch}")
@@ -105,16 +104,15 @@ inspect_generator(train_generator)
 inspect_generator(validation_generator)
 
 # --- Model Training ---
-# with mlflow.start_run():
 # Build model
-model = unet_model(input_shape=(128, 128, 3), n_filters=64, use_dropout=False)
+model = unet_model(input_shape=(128, 128, 3), from_logits=True, n_filters=32, use_dropout=False)
 print(model.summary())
 
 # Compile model
 model.compile(
-    optimizer=Adam(learning_rate = 1e-4),
-    loss=BinaryFocalCrossentropy(),  # Pixel-wise binary focal cross-entropy loss
-    # loss=BinaryCrossentropy(),  # Pixel-wise binary cross-entropy loss
+    optimizer=Adam(learning_rate=3e-4),
+    loss=BinaryFocalCrossentropy(from_logits=True),  # Pixel-wise binary focal cross-entropy loss
+    # loss=BinaryCrossentropy(from_logits=True),  # Pixel-wise binary cross-entropy loss
     metrics = ['accuracy', tf.keras.metrics.Precision(), tf.keras.metrics.Recall()]
 )
 
@@ -124,17 +122,20 @@ X_test_fixed = X_test[:num_samples_to_visualize]
 y_test_fixed = y_test[:num_samples_to_visualize]
 
 # Train model
-epochs = 10  # Set epochs and early stopping
+epochs = 100  # Set epochs and early stopping
 
-history_2 = model.fit(
-    train_generator,
-    validation_data=validation_generator,
-    batch_size=batch_size,
-    steps_per_epoch=steps_per_epoch,
-    validation_steps=validation_steps,
-    epochs = epochs,
-    callbacks=[PredictionCallback(model, X_test_fixed, y_test_fixed, interval=2)]
-)
+with mlflow.start_run():
+    print("\nStart Model Training...")
+
+    history_2 = model.fit(
+        train_generator,
+        validation_data=validation_generator,
+        batch_size=batch_size,
+        steps_per_epoch=steps_per_epoch,
+        validation_steps=validation_steps,
+        epochs = epochs,
+        callbacks=[PredictionCallback(model, X_test_fixed, y_test_fixed, interval=10)]
+    )
 
 # Save model
 model.save('unet.keras')

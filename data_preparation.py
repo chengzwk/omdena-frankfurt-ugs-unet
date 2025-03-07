@@ -58,7 +58,7 @@ def convert_binary_mask(mask_array, multiclass=True, threshold=0.5):
         mask_array = mask_array[:, :, np.newaxis]
     return mask_array
 
-def read_file(data_dir, image_dir, multiclass=True, if_subset=False, threshold=0.5, subset_size=None):
+def read_file(data_dir, image_dir, multiclass=True, threshold=0.5, subset_size=None):
     """
     Read satellite image files and corresponding masks as numpy arrays,
     normalize image array to the same scale by band, and convert fractional masks into binary masks.
@@ -69,7 +69,7 @@ def read_file(data_dir, image_dir, multiclass=True, if_subset=False, threshold=0
     mask_dir = image_dir + '_masks'
     image_files = [f for f in os.listdir(os.path.join(data_dir, image_dir)) if f.endswith('GeoTIFF.tif')]
     image_files = natsorted(image_files)
-    if if_subset:
+    if subset_size is not None:
         image_files = image_files[:subset_size]
     total_files = len(image_files)
 
