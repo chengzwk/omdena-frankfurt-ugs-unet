@@ -123,53 +123,11 @@ def run_evaluation(model, X_test, y_test):
 
 if __name__ == "__main__":
     model = tf.keras.models.load_model('model_normal.keras')  # Load trained model
-    X_test = np.random.rand(10, 128, 128, 3)  # Dummy test data
-    y_test = np.random.randint(0, 2, (10, 128, 128, 1))  # Dummy test masks
+    X_test = np.random.rand(1, 128, 128, 3)  # Dummy test data
+    y_test = np.random.randint(0, 2, (1, 128, 128, 1))  # Dummy test masks
 
     run_evaluation(model, X_test, y_test)
 
-
-"""
-import tensorflow as tf
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.losses import BinaryFocalCrossentropy
-import matplotlib.pyplot as plt
-import numpy as np
-
-# Assuming you have the following functions defined:
-# read_file, show_statistics, inspect_dataset, split_dataset,
-# get_data_generators, my_image_mask_generator, inspect_generator,
-# unet_model, plot_accuracy, predict, evaluate_model, compute_iou, plot_roc_curve
-
-# --- Data Loading and Preprocessing ---
-# ... (your data loading code) ...
-
-# --- Data Augmentation ---
-# ... (your data augmentation code) ...
-
-# --- Model Training ---
-model = unet_model(input_shape=(128, 128, 3), use_dropout=False)
-print(model.summary())
-
-model.compile(optimizer=Adam(learning_rate=1e-4),
-              loss=BinaryFocalCrossentropy(from_logits=True),
-              metrics=['accuracy', tf.keras.metrics.Precision(), tf.keras.metrics.Recall()])
-
-epochs = 2
-history_2 = model.fit(train_generator,
-                    validation_data=validation_generator,
-                    batch_size=batch_size,
-                    steps_per_epoch=steps_per_epoch,
-                    validation_steps=validation_steps,
-                    epochs=epochs,
-                    callbacks=[PredictionVisualizationCallback(X_test[:batch_size], y_test[:batch_size])]) # add callback here
-
-model.save('unet.keras')
-plot_accuracy(history_2)
-
-# --- Model Prediction and Evaluation ---
-run_evaluation(model, X_test, y_test)
-"""
 
 
 
