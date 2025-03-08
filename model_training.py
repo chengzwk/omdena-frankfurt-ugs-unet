@@ -4,6 +4,7 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+import pickle
 import tensorflow as tf
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.losses import BinaryCrossentropy
@@ -33,23 +34,25 @@ def plot_accuracy(history_2):
     loss = history_2.history['loss']
     val_loss = history_2.history['val_loss']
     epochs = range(1, len(loss) + 1)
+    plt.figure()
     plt.plot(epochs, loss, 'y', label='Training loss')
     plt.plot(epochs, val_loss, 'r', label='Validation loss')
     plt.title('Training and validation loss')
     plt.xlabel('Epochs')
     plt.ylabel('Loss')
     plt.legend()
-    plt.show()
+    plt.savefig("Loss.png")
 
     acc = history_2.history['accuracy']
     val_acc = history_2.history['val_accuracy']
+    plt.figure()
     plt.plot(epochs, acc, 'y', label='Training acc')
     plt.plot(epochs, val_acc, 'r', label='Validation acc')
     plt.title('Training and validation accuracy')
     plt.xlabel('Epochs')
     plt.ylabel('Accuracy')
     plt.legend()
-    plt.show()
+    plt.savefig("Accuracy.png")
 
 class PredictionCallback(Callback):
     def __init__(self, model, X_test, y_test, interval=5):
@@ -68,7 +71,7 @@ class PredictionCallback(Callback):
 
 data_dir = os.path.expanduser("~/Documents/Omdena/FrankfurtGermanyChapter_UrbanGreenSpaceMappping/MULC")
 image_dir = 'VBWVA_8R'
-subset_size = 320
+subset_size = 10
 image_dataset, mask_dataset = read_file(
     data_dir,
     image_dir,
@@ -87,7 +90,7 @@ formatted_print_shapes(X_train, X_val, X_test, y_train, y_val, y_test)
 
 # --- Data Augmentation ---
 
-batch_size = 16
+batch_size = 2
 steps_per_epoch = len(X_train)//batch_size  # for generator
 validation_steps = len(X_val)//batch_size  # for generator
 print(f"Steps per epoch: {steps_per_epoch}")
@@ -122,7 +125,7 @@ X_test_fixed = X_test[:num_samples_to_visualize]
 y_test_fixed = y_test[:num_samples_to_visualize]
 
 # Train model
-epochs = 100  # Set epochs and early stopping
+epochs = 5  # Set epochs and early stopping
 
 with mlflow.start_run():
     print("\nStart Model Training...")
@@ -137,8 +140,12 @@ with mlflow.start_run():
         callbacks=[PredictionCallback(model, X_test_fixed, y_test_fixed, interval=10)]
     )
 
+# Save training history
+with open('unet_training_history.pkl', 'wb') as file:
+    pickle.dump(history_2.history, file)
+
 # Save model
-model.save('unet.keras')
+model.save('unet_debug.keras')
 
 # Plot the training and validation accuracy and loss at each epoch
 plot_accuracy(history_2)

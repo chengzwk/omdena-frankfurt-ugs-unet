@@ -70,7 +70,7 @@ def plot_roc_curve(y_pred_thresholded, y_test):
     plt.title("ROC Curve")
     plt.legend(loc="lower right")
     plt.grid()
-    plt.show()
+    plt.savefig("ROC_curve.png")
 
     print(f"AUC: {auc_value:.4f}")
     return auc_value
