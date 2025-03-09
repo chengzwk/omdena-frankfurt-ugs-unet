@@ -71,12 +71,12 @@ class PredictionCallback(Callback):
 
 data_dir = os.path.expanduser("~/Documents/Omdena/FrankfurtGermanyChapter_UrbanGreenSpaceMappping/MULC")
 image_dir = 'VBWVA_8R'
-subset_size = 10
+# subset_size = 10
 image_dataset, mask_dataset = read_file(
     data_dir,
     image_dir,
     multiclass=False,
-    subset_size=subset_size
+#    subset_size=subset_size
 )
 
 # Print statistics of the dataset and visually inspect the dataset
@@ -90,7 +90,7 @@ formatted_print_shapes(X_train, X_val, X_test, y_train, y_val, y_test)
 
 # --- Data Augmentation ---
 
-batch_size = 2
+batch_size = 16
 steps_per_epoch = len(X_train)//batch_size  # for generator
 validation_steps = len(X_val)//batch_size  # for generator
 print(f"Steps per epoch: {steps_per_epoch}")
@@ -125,7 +125,7 @@ X_test_fixed = X_test[:num_samples_to_visualize]
 y_test_fixed = y_test[:num_samples_to_visualize]
 
 # Train model
-epochs = 5  # Set epochs and early stopping
+epochs = 100  # Set epochs and early stopping
 
 with mlflow.start_run():
     print("\nStart Model Training...")
@@ -145,7 +145,7 @@ with open('unet_training_history.pkl', 'wb') as file:
     pickle.dump(history_2.history, file)
 
 # Save model
-model.save('unet_debug.keras')
+model.save('unet.keras')
 
 # Plot the training and validation accuracy and loss at each epoch
 plot_accuracy(history_2)

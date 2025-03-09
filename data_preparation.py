@@ -63,11 +63,12 @@ def read_file(data_dir, image_dir, multiclass=True, threshold=0.5, subset_size=N
     Read satellite image files and corresponding masks as numpy arrays,
     normalize image array to the same scale by band, and convert fractional masks into binary masks.
     Read subset_size image files for training
+    Note we're only using images from the same time (files ends in 1_GeoTIFF)
     """
     image_dataset = []
     mask_dataset = []
     mask_dir = image_dir + '_masks'
-    image_files = [f for f in os.listdir(os.path.join(data_dir, image_dir)) if f.endswith('GeoTIFF.tif')]
+    image_files = [f for f in os.listdir(os.path.join(data_dir, image_dir)) if f.endswith('1_GeoTIFF.tif')]
     image_files = natsorted(image_files)
     if subset_size is not None:
         image_files = image_files[:subset_size]
