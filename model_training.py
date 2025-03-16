@@ -30,6 +30,18 @@ import mlflow
 # mlflow.tensorflow.autolog()
 
 
+class PredictionCallback(Callback):
+    def __init__(self, model, X_test, y_test, interval=5):
+        super().__init__()
+        self.X_test = X_test
+        self.y_test = y_test
+        self.interval = interval  # Run every 'interval' epochs
+
+    def on_epoch_end(self, epoch, logs=None):
+        if (epoch + 1) % self.interval == 0:
+            y_pred, y_pred_thresholded = predict(self.model, X_test)
+            visualize_predictions(self.X_test, self.y_test, y_pred_thresholded, title=f"Epoch {epoch+1} Predictions")
+
 def plot_accuracy(history_2):
     loss = history_2.history['loss']
     val_loss = history_2.history['val_loss']
@@ -69,18 +81,6 @@ def plot_accuracy(history_2):
     plt.legend()
     plt.savefig("IoU.png")
 
-class PredictionCallback(Callback):
-    def __init__(self, model, X_test, y_test, interval=5):
-        super().__init__()
-        self.X_test = X_test
-        self.y_test = y_test
-        self.interval = interval  # Run every 'interval' epochs
-
-    def on_epoch_end(self, epoch, logs=None):
-        if (epoch + 1) % self.interval == 0:
-            y_pred, y_pred_thresholded = predict(self.model, X_test)
-            visualize_predictions(self.X_test, self.y_test, y_pred_thresholded, title=f"Epoch {epoch+1} Predictions")
-
 
 # --- Data Loading and Preprocessing ---
 
@@ -96,7 +96,7 @@ image_dataset, mask_dataset = read_file(
 
 # Print statistics of the dataset and visually inspect the dataset
 show_statistics(image_dataset, mask_dataset)
-inspect_dataset(image_dataset, mask_dataset)
+# inspect_dataset(image_dataset, mask_dataset)
 
 # Train-validation-test split
 X_train, X_val, X_test, y_train, y_val, y_test = split_dataset(image_dataset, mask_dataset)
@@ -118,8 +118,8 @@ train_generator = my_image_mask_generator(image_generator, mask_generator)
 validation_generator = my_image_mask_generator(valid_img_generator, valid_mask_generator)
 
 # Inspect generators
-inspect_generator(train_generator)
-inspect_generator(validation_generator)
+# inspect_generator(train_generator)
+# inspect_generator(validation_generator)
 
 # --- Model Training ---
 # Build model
@@ -132,8 +132,8 @@ model.compile(
     loss=BinaryFocalCrossentropy(from_logits=True),  # Pixel-wise binary focal cross-entropy loss
     # loss=BinaryCrossentropy(from_logits=True),  # Pixel-wise binary cross-entropy loss
     metrics = ['accuracy',
-               tf.keras.metrics.Precision(),
-               tf.keras.metrics.Recall(),
+               tf.keras.metrics.Precision(thresholds=0),
+               tf.keras.metrics.Recall(thresholds=0),
                tf.keras.metrics.BinaryIoU(target_class_ids=[0, 1], threshold=0.0),
                tf.keras.metrics.BinaryIoU(target_class_ids=[1], threshold=0.0)
                ]
@@ -145,9 +145,9 @@ X_test_fixed = X_test[:num_samples_to_visualize]
 y_test_fixed = y_test[:num_samples_to_visualize]
 
 # Train model
-epochs = 10  # Set epochs and early stopping
+epochs = 3  # Set epochs and early stopping
 
-#with mlflow.start_run():
+# with mlflow.start_run():
 print("\nStart Model Training...")
 
 history_2 = model.fit(
