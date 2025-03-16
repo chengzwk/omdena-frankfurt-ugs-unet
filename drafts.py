@@ -217,3 +217,27 @@ model.compile(optimizer=Adam(learning_rate=1e-4),
 
 # loss=BinaryFocalLoss(gamma = 2),
 # loss=CategoricalFocalCrossentropy(gamma = 2),
+
+
+def f1_score(y_true, y_pred):
+    """Calculates the F1 score."""
+    true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
+    predicted_positives = K.sum(K.round(K.clip(y_pred, 0, 1)))
+    possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
+    precision = true_positives / (predicted_positives + K.epsilon())
+    recall = true_positives / (possible_positives + K.epsilon())
+    return 2 * ((precision * recall) / (precision + recall + K.epsilon()))
+
+def iou(y_true, y_pred):
+    """Calculates the Intersection over Union (IoU)."""
+    intersection = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
+    union = K.sum(K.round(K.clip(y_true + y_pred, 0, 1)))
+    iou = intersection / (union + K.epsilon())
+    return iou
+
+y_train_cat = train_masks_cat.reshape((y_train.shape[0], y_train.shape[1], y_train.shape[2], num_classes))
+
+# Convert y into categorical
+y_train_cat = categorical_mask_dataset(y_train)
+y_val_cat = categorical_mask_dataset(y_val)
+y_test_cat = categorical_mask_dataset(y_test)

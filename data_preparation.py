@@ -68,7 +68,7 @@ def read_file(data_dir, image_dir, multiclass=True, threshold=0.5, subset_size=N
     image_dataset = []
     mask_dataset = []
     mask_dir = image_dir + '_masks'
-    image_files = [f for f in os.listdir(os.path.join(data_dir, image_dir)) if f.endswith('1_GeoTIFF.tif')]
+    image_files = [f for f in os.listdir(os.path.join(data_dir, image_dir)) if f.endswith('2_GeoTIFF.tif')]
     image_files = natsorted(image_files)
     if subset_size is not None:
         image_files = image_files[:subset_size]
@@ -275,8 +275,7 @@ def split_dataset(image_dataset, mask_dataset, test_size=0.15, val_size=0.15, ra
 
 def categorical_mask_dataset(y_train, num_classes=2):
     """Turns mask dataset (y_train, y_val, y_test) into categorical (one-hot encoded) format."""
-    train_masks_cat = to_categorical(y_train, num_classes=num_classes)
-    y_train_cat = train_masks_cat.reshape((y_train.shape[0], y_train.shape[1], y_train.shape[2], num_classes))
+    y_train_cat = to_categorical(y_train, num_classes=num_classes)
     return y_train_cat
 
 def formatted_print_shapes(X_train, X_val, X_test, y_train, y_val, y_test):

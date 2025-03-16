@@ -54,9 +54,9 @@ def my_image_mask_generator(image_generator, mask_generator):
     for (img, mask) in train_generator:
         yield (img, mask)
 
-def inspect_generator(train_generator):
+def inspect_generator(train_generator, onehot=False):
     """
-    Inspects the fisrt 2 images from a batch from a generator, displaying each image and mask pair on a single plot.
+    Inspects the first 2 images from a batch from a generator, displaying each image and mask pair on a single plot.
     """
     images, masks = next(train_generator)
     # batch_size = images.shape[0]
@@ -70,7 +70,10 @@ def inspect_generator(train_generator):
         axes[0].axis('off')  # Turn off axis labels
 
         # Display mask
-        axes[1].imshow(masks[i][:, :, 0], cmap='gray')
+        if onehot:
+            axes[1].imshow(masks[i][:, :, 1], cmap='gray')
+        else:
+            axes[1].imshow(masks[i][:, :, 0], cmap='gray')
         axes[1].set_title(f"Mask {i}")
         axes[1].axis('off')  # Turn off axis labels
 
