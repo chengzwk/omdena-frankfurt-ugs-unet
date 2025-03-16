@@ -27,7 +27,7 @@ def predict(model, X_test, threshold=0.5):
 
 def evaluate_model(model, X_test, y_test):
     """Evaluate model on test set and return loss, accuracy, precision, and recall."""
-    loss, acc, precision, recall = model.evaluate(X_test, y_test, verbose=0)
+    loss, acc, precision, recall, mean_iou, iou_class1 = model.evaluate(X_test, y_test, verbose=0)
     f1_score = calculate_f1_score(precision, recall)
 
     print(f"Loss: {loss:.4f}")
@@ -35,6 +35,8 @@ def evaluate_model(model, X_test, y_test):
     print(f"Precision: {precision:.4f}")
     print(f"Recall: {recall:.4f}")
     print(f"F1 Score: {f1_score:.4f}")
+    print(f"Mean IoU: {mean_iou:.4f}")
+    print(f"IoU for class 1: {iou_class1:.4f}")
 
     return loss, acc, precision, recall, f1_score
 
@@ -111,7 +113,7 @@ def run_evaluation(model, X_test, y_test):
     evaluate_model(model, X_test, y_test)
 
     # Compute IoU
-    compute_iou(y_pred_thresholded, y_test)
+    # compute_iou(y_pred_thresholded, y_test)
 
     # Plot ROC curve and compute AUC
     plot_roc_curve(y_pred_thresholded, y_test)
