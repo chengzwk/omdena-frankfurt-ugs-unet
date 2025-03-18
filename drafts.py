@@ -241,3 +241,24 @@ y_train_cat = train_masks_cat.reshape((y_train.shape[0], y_train.shape[1], y_tra
 y_train_cat = categorical_mask_dataset(y_train)
 y_val_cat = categorical_mask_dataset(y_val)
 y_test_cat = categorical_mask_dataset(y_test)
+
+class F1ScoreWithLogits(tf.keras.metrics.F1Score):
+    def __init__(self, threshold=0.5, **kwargs):
+        super().__init__(threshold=threshold, **kwargs)
+        self.threshold = threshold
+
+    def update_state(self, y_true, y_pred, sample_weight=None):
+        # Apply sigmoid to logits
+        y_pred = tf.sigmoid(y_pred)
+
+        # Get fixed dimensions from input shape
+        batch_size = tf.shape(y_true)[0]
+        height, width, channels = y_true.shape[1], y_true.shape[2], y_true.shape[3]
+
+        # Ensure output_dim is fully defined
+        output_dim = height * width * channels
+        y_true = tf.reshape(y_true, (batch_size, output_dim))
+        y_pred = tf.reshape(y_pred, (batch_size, output_dim))
+
+        # Call parent class update_state method
+        return super().update_state(y_true, y_pred, sample_weight)
