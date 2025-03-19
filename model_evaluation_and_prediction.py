@@ -1,11 +1,10 @@
 import numpy as np
+import os
 import matplotlib.pyplot as plt
 import tensorflow as tf
 from tensorflow.keras.metrics import IoU, MeanIoU
 from sklearn.metrics import roc_curve, auc
 
-
-import numpy as np
 
 def calculate_f1_score(precision, recall):
     """Calculates the F1 score and avoids division by zero."""
@@ -55,7 +54,7 @@ def compute_iou(y_pred_thresholded, y_test):
 
     return iou_value, mean_iou_value
 
-def plot_roc_curve(y_pred_thresholded, y_test):
+def plot_roc_curve(y_pred_thresholded, y_test, result_dir):
     """Plot ROC curve and compute AUC."""
     y_test_raveled = y_test.ravel().astype(int)
     y_pred_thresholded_raveled = y_pred_thresholded.ravel().astype(int)
@@ -70,12 +69,12 @@ def plot_roc_curve(y_pred_thresholded, y_test):
     plt.title("ROC Curve")
     plt.legend(loc="lower right")
     plt.grid()
-    plt.savefig("ROC_curve.png")
+    plt.savefig(os.path.join(result_dir, "ROC_curve.png"))
 
     print(f"AUC: {auc_value:.4f}")
     return auc_value
 
-def visualize_predictions(X, y_true, y_pred, title="Predictions vs. Ground Truth"):
+def visualize_predictions(X, y_true, y_pred, result_dir, title="Predictions vs. Ground Truth"):
     """Helper function to visualize predictions against ground truth."""
     num_samples = X.shape[0]
     fig, axes = plt.subplots(num_samples, 3, figsize=(10, 5 * num_samples))
@@ -98,9 +97,9 @@ def visualize_predictions(X, y_true, y_pred, title="Predictions vs. Ground Truth
 
     plt.suptitle(title, fontsize=14)
     plt.tight_layout()
-    plt.savefig(f"{title}.png")
+    plt.savefig(os.path.join(result_dir, f"{title}.png"))
 
-def run_evaluation(model, X_test, y_test):
+def run_evaluation(model, X_test, y_test, result_dir):
     """Run all evaluation steps."""
     print("Model Evaluation")
     print("-" * 20)
@@ -115,10 +114,10 @@ def run_evaluation(model, X_test, y_test):
     compute_iou(y_pred_thresholded, y_test)
 
     # Plot ROC curve and compute AUC
-    plot_roc_curve(y_pred_thresholded, y_test)
+    plot_roc_curve(y_pred_thresholded, y_test, result_dir)
 
     # Visualize predictions vs. ground truth
-    visualize_predictions(X_test, y_test, y_pred_thresholded, title="Final Predictions")
+    visualize_predictions(X_test, y_test, y_pred_thresholded, result_dir, title="Final Predictions")
 
 
 if __name__ == "__main__":

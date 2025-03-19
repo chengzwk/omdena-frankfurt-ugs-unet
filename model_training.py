@@ -30,7 +30,7 @@ dagshub.init(repo_name="omdena-frankfurt-ugs-unet", repo_owner="chengzwk")
 mlflow.tensorflow.autolog()
 
 
-def plot_accuracy(history_2):
+def plot_accuracy(history_2, result_dir):
     loss = history_2.history['loss']
     val_loss = history_2.history['val_loss']
     epochs = range(1, len(loss) + 1)
@@ -41,7 +41,7 @@ def plot_accuracy(history_2):
     plt.xlabel('Epochs')
     plt.ylabel('Loss')
     plt.legend()
-    plt.savefig("Loss.png")
+    plt.savefig(os.path.join(result_dir, "Loss.png"))
 
     acc = history_2.history['accuracy']
     val_acc = history_2.history['val_accuracy']
@@ -52,19 +52,20 @@ def plot_accuracy(history_2):
     plt.xlabel('Epochs')
     plt.ylabel('Accuracy')
     plt.legend()
-    plt.savefig("Accuracy.png")
+    plt.savefig(os.path.join(result_dir, "Accuracy.png"))
 
 class PredictionCallback(Callback):
-    def __init__(self, model, X_test, y_test, interval=5):
+    def __init__(self, model, X_test, y_test, result_dir, interval=5):
         super().__init__()
         self.X_test = X_test
         self.y_test = y_test
+        self.result_dir = result_dir
         self.interval = interval  # Run every 'interval' epochs
 
     def on_epoch_end(self, epoch, logs=None):
         if (epoch + 1) % self.interval == 0:
             y_pred, y_pred_thresholded = predict(self.model, X_test)
-            visualize_predictions(self.X_test, self.y_test, y_pred_thresholded, title=f"Epoch {epoch+1} Predictions")
+            visualize_predictions(self.X_test, self.y_test, y_pred_thresholded, self.result_dir, title=f"Epoch {epoch+1} Predictions")
 
 
 # --- Data Loading and Preprocessing ---
@@ -124,6 +125,14 @@ num_samples_to_visualize = 2
 X_test_fixed = X_test[:num_samples_to_visualize]
 y_test_fixed = y_test[:num_samples_to_visualize]
 
+# Save training results to a new directory
+# Save model, training history, prediction and evaluation results
+experiment_label = 'experiment01_reproduce_timepoint2_training_result'
+result_dir = os.path.join(os.getcwd(), experiment_label)
+history_path = os.path.join(result_dir, 'unet_training_history.pkl')
+model_path = os.path.join(result_dir, 'unet.keras')
+os.makedirs(result_dir, exist_ok=True)
+
 # Train model
 epochs = 100  # Set epochs and early stopping
 
@@ -137,21 +146,21 @@ with mlflow.start_run():
         steps_per_epoch=steps_per_epoch,
         validation_steps=validation_steps,
         epochs = epochs,
-        callbacks=[PredictionCallback(model, X_test_fixed, y_test_fixed, interval=10)]
+        callbacks=[PredictionCallback(model, X_test_fixed, y_test_fixed, result_dir, interval=10)]
     )
 
 # Save training history
-with open('unet_training_history.pkl', 'wb') as file:
+with open(history_path, 'wb') as file:
     pickle.dump(history_2.history, file)
 
 # Save model
-model.save('unet.keras')
+model.save(model_path)
 
 # Plot the training and validation accuracy and loss at each epoch
-plot_accuracy(history_2)
+plot_accuracy(history_2, result_dir)
 
 # --- Model Prediction and Evaluation ---
-run_evaluation(model, X_test, y_test)
+run_evaluation(model, X_test, y_test, result_dir)
 
 
 
