@@ -13,7 +13,7 @@ from tensorflow.keras.callbacks import Callback
 from tensorflow.keras import backend as K
 
 # Import functions from other scripts
-from data_preparation import read_file, split_dataset, categorical_mask_dataset, show_statistics, inspect_dataset, formatted_print_shapes
+from data_preparation import read_file, split_dataset, show_statistics, inspect_dataset, formatted_print_shapes
 from data_augmentation import get_data_generators, my_image_mask_generator, inspect_generator
 from model_unet import unet_model
 from model_evaluation_and_prediction import run_evaluation, predict, visualize_predictions
@@ -30,19 +30,7 @@ dagshub.init(repo_name="omdena-frankfurt-ugs-unet", repo_owner="chengzwk")
 mlflow.tensorflow.autolog()
 
 
-class PredictionCallback(Callback):
-    def __init__(self, model, X_test, y_test, interval=5):
-        super().__init__()
-        self.X_test = X_test
-        self.y_test = y_test
-        self.interval = interval  # Run every 'interval' epochs
-
-    def on_epoch_end(self, epoch, logs=None):
-        if (epoch + 1) % self.interval == 0:
-            y_pred, y_pred_thresholded = predict(self.model, X_test)
-            visualize_predictions(self.X_test, self.y_test, y_pred_thresholded, title=f"Epoch {epoch+1} Predictions")
-
-def plot_accuracy(history_2):
+def plot_accuracy(history_2, result_dir):
     loss = history_2.history['loss']
     val_loss = history_2.history['val_loss']
     epochs = range(1, len(loss) + 1)
@@ -53,7 +41,7 @@ def plot_accuracy(history_2):
     plt.xlabel('Epochs')
     plt.ylabel('Loss')
     plt.legend()
-    plt.savefig("Loss.png")
+    plt.savefig(os.path.join(result_dir, "Loss.png"))
 
     acc = history_2.history['accuracy']
     val_acc = history_2.history['val_accuracy']
@@ -64,22 +52,20 @@ def plot_accuracy(history_2):
     plt.xlabel('Epochs')
     plt.ylabel('Accuracy')
     plt.legend()
-    plt.savefig("Accuracy.png")
+    plt.savefig(os.path.join(result_dir, "Accuracy.png"))
 
-    mean_iou = history_2.history['binary_io_u']
-    val_mean_iou = history_2.history['val_binary_io_u']
-    iou_class1 = history_2.history['binary_io_u_1']
-    val_iou_class1 = history_2.history['val_binary_io_u_1']
-    plt.figure()
-    plt.plot(epochs, mean_iou, 'b-', label='Training Mean IoU')
-    plt.plot(epochs, val_mean_iou, 'b--', label='Validation Mean IoU')
-    plt.plot(epochs, iou_class1, 'g-', label='Training IoU Class 1')
-    plt.plot(epochs, val_iou_class1, 'g--', label='Validation IoU Class1')
-    plt.title('Training and validation IoU')
-    plt.xlabel('Epochs')
-    plt.ylabel('IoU')
-    plt.legend()
-    plt.savefig("IoU.png")
+class PredictionCallback(Callback):
+    def __init__(self, model, X_test, y_test, result_dir, interval=5):
+        super().__init__()
+        self.X_test = X_test
+        self.y_test = y_test
+        self.result_dir = result_dir
+        self.interval = interval  # Run every 'interval' epochs
+
+    def on_epoch_end(self, epoch, logs=None):
+        if (epoch + 1) % self.interval == 0:
+            y_pred, y_pred_thresholded = predict(self.model, X_test)
+            visualize_predictions(self.X_test, self.y_test, y_pred_thresholded, self.result_dir, title=f"Epoch {epoch+1} Predictions")
 
 
 # --- Data Loading and Preprocessing ---
@@ -131,20 +117,21 @@ model.compile(
     optimizer=Adam(learning_rate=3e-4),
     loss=BinaryFocalCrossentropy(from_logits=True),  # Pixel-wise binary focal cross-entropy loss
     # loss=BinaryCrossentropy(from_logits=True),  # Pixel-wise binary cross-entropy loss
-    metrics = ['accuracy',
-               # tf.keras.metrics.Precision(thresholds=0),
-               # tf.keras.metrics.Recall(thresholds=0),
-               tf.keras.metrics.Precision(),
-               tf.keras.metrics.Recall(),
-               tf.keras.metrics.BinaryIoU(target_class_ids=[0, 1], threshold=0.0),
-               tf.keras.metrics.BinaryIoU(target_class_ids=[1], threshold=0.0)
-               ]
+    metrics = ['accuracy', tf.keras.metrics.Precision(), tf.keras.metrics.Recall()]
 )
 
 # Select a fixed test batch for visualization
 num_samples_to_visualize = 2
 X_test_fixed = X_test[:num_samples_to_visualize]
 y_test_fixed = y_test[:num_samples_to_visualize]
+
+# Save training results to a new directory
+# Save model, training history, prediction and evaluation results
+experiment_label = 'experiment01_reproduce_timepoint2_training_result'
+result_dir = os.path.join(os.getcwd(), experiment_label)
+history_path = os.path.join(result_dir, 'unet_training_history.pkl')
+model_path = os.path.join(result_dir, 'unet.keras')
+os.makedirs(result_dir, exist_ok=True)
 
 # Train model
 epochs = 100  # Set epochs and early stopping
@@ -159,21 +146,21 @@ with mlflow.start_run():
         steps_per_epoch=steps_per_epoch,
         validation_steps=validation_steps,
         epochs = epochs,
-        callbacks=[PredictionCallback(model, X_test_fixed, y_test_fixed, interval=10)]
+        callbacks=[PredictionCallback(model, X_test_fixed, y_test_fixed, result_dir, interval=10)]
     )
 
 # Save training history
-with open('unet_training_history.pkl', 'wb') as file:
+with open(history_path, 'wb') as file:
     pickle.dump(history_2.history, file)
 
 # Save model
-model.save('unet.keras')
+model.save(model_path)
 
 # Plot the training and validation accuracy and loss at each epoch
-plot_accuracy(history_2)
+plot_accuracy(history_2, result_dir)
 
 # --- Model Prediction and Evaluation ---
-run_evaluation(model, X_test, y_test)
+run_evaluation(model, X_test, y_test, result_dir)
 
 
 
