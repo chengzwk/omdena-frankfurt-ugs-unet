@@ -1,0 +1,5 @@
+outs:
+    - md5: 6fcec7bab6fb5be839fe49a8fdb7fb1c.dir
+      size: 21617
+      path: results
+      nfiles: 2
