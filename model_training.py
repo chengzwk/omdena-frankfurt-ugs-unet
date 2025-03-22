@@ -89,15 +89,46 @@ X_train, X_val, X_test, y_train, y_val, y_test = split_dataset(image_dataset, ma
 del image_dataset, mask_dataset
 formatted_print_shapes(X_train, X_val, X_test, y_train, y_val, y_test)
 
+# Load the St. Louis dataset
+stl_image_dirs = ['SLMO_8R_1', 'SLMO_9R_2', 'SLMO_9R_3']
+stl_image_dataset = []
+stl_mask_dataset = []
+for stl_image_dir in stl_image_dirs:
+    temp_image_dataset, temp_mask_dataset = read_file(
+        data_dir,
+        stl_image_dir,
+        multiclass=False
+    )
+    stl_image_dataset.append(temp_image_dataset)
+    stl_mask_dataset.append(temp_mask_dataset)
+stl_image_dataset = np.concatenate(stl_image_dataset, axis=0)
+stl_mask_dataset = np.concatenate(stl_mask_dataset, axis=0)
+del temp_image_dataset, temp_mask_dataset
+
+# Print statistics of the dataset and visually inspect the dataset
+show_statistics(stl_image_dataset, stl_mask_dataset)
+inspect_dataset(stl_image_dataset, stl_mask_dataset)
+
+# Merge St. Louis data with training set only
+X_train_expanded = np.concatenate((X_train, stl_image_dataset), axis=0)
+y_train_expanded = np.concatenate((y_train, stl_mask_dataset), axis=0)
+
+# Shuffle the expanded training set
+shuffle_idx = np.random.permutation(len(X_train_expanded))
+X_train_expanded, y_train_expanded = X_train_expanded[shuffle_idx], y_train_expanded[shuffle_idx]
+
+# Print expanded dataset shapes to verify
+formatted_print_shapes(X_train_expanded, X_val, X_test, y_train_expanded, y_val, y_test)
+
 # --- Data Augmentation ---
 
 batch_size = 16
-steps_per_epoch = len(X_train)//batch_size  # for generator
+steps_per_epoch = len(X_train_expanded)//batch_size  # for generator
 validation_steps = len(X_val)//batch_size  # for generator
 print(f"Steps per epoch: {steps_per_epoch}")
 print(f"Validation steps: {validation_steps}")
 image_generator, valid_img_generator, mask_generator, valid_mask_generator = \
-    get_data_generators(X_train, X_val, y_train, y_val, use_augmentation=False, batch_size=batch_size)
+    get_data_generators(X_train_expanded, X_val, y_train_expanded, y_val, use_augmentation=False, batch_size=batch_size)
 
 # Combine image-mask generators
 train_generator = my_image_mask_generator(image_generator, mask_generator)
