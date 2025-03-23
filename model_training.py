@@ -10,6 +10,7 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.losses import BinaryCrossentropy
 from tensorflow.keras.losses import BinaryFocalCrossentropy
 from tensorflow.keras.callbacks import Callback
+from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.keras import backend as K
 
 # Import functions from other scripts
@@ -152,6 +153,13 @@ model.compile(
     metrics = ['accuracy', tf.keras.metrics.Precision(), tf.keras.metrics.Recall()]
 )
 
+# Early stopping
+early_stopping = EarlyStopping(
+    monitor='val_loss',  # Stop when validation loss stops improving
+    patience=20,         # Wait 10 epochs before stopping
+    restore_best_weights=True  # Keep the best weights
+)
+
 # Select a fixed test batch for visualization
 num_samples_to_visualize = 2
 X_test_fixed = X_test[:num_samples_to_visualize]
@@ -178,7 +186,7 @@ with mlflow.start_run():
         steps_per_epoch=steps_per_epoch,
         validation_steps=validation_steps,
         epochs = epochs,
-        callbacks=[PredictionCallback(model, X_test_fixed, y_test_fixed, result_dir, interval=10)]
+        callbacks=[early_stopping, PredictionCallback(model, X_test_fixed, y_test_fixed, result_dir, interval=10)]
     )
 
 # Save training history
