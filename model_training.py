@@ -128,7 +128,7 @@ validation_steps = len(X_val)//batch_size  # for generator
 print(f"Steps per epoch: {steps_per_epoch}")
 print(f"Validation steps: {validation_steps}")
 image_generator, valid_img_generator, mask_generator, valid_mask_generator = \
-    get_data_generators(X_train_expanded, X_val, y_train_expanded, y_val, use_augmentation=False, batch_size=batch_size)
+    get_data_generators(X_train_expanded, X_val, y_train_expanded, y_val, use_augmentation=True, batch_size=batch_size)
 
 # Combine image-mask generators
 train_generator = my_image_mask_generator(image_generator, mask_generator)

@@ -22,7 +22,7 @@ def get_data_generators(X_train, X_val, y_train, y_val, use_augmentation=True, b
                                   horizontal_flip=True,
                                   vertical_flip=True,
                                   fill_mode='reflect',
-                                  preprocessing_function = lambda x: np.where(x > 0, 1, 0).astype(x.dtype))
+                                  preprocessing_function = lambda x: np.where(x > 0.5, 1, 0).astype(x.dtype))
 
         # image generator (on X_train and X_val)
         image_data_generator = ImageDataGenerator(**img_data_gen_args)
