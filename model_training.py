@@ -123,8 +123,9 @@ formatted_print_shapes(X_train_expanded, X_val, X_test, y_train_expanded, y_val,
 # --- Data Augmentation ---
 
 batch_size = 16
-steps_per_epoch = len(X_train_expanded)//batch_size  # for generator
-validation_steps = len(X_val)//batch_size  # for generator
+augmentation_factor = 2  # Can adjust this value
+steps_per_epoch = augmentation_factor * (len(X_train_expanded) // batch_size)
+validation_steps = len(X_val)//batch_size
 print(f"Steps per epoch: {steps_per_epoch}")
 print(f"Validation steps: {validation_steps}")
 image_generator, valid_img_generator, mask_generator, valid_mask_generator = \
