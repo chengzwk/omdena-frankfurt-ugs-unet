@@ -24,27 +24,28 @@ def get_data_generators(X_train, X_val, y_train, y_val, use_augmentation=True, b
                                   fill_mode='reflect',
                                   preprocessing_function = lambda x: np.where(x > 0.5, 1, 0).astype(x.dtype))
 
-        # image generator (on X_train and X_val)
+        # image generator (on X_train)
         image_data_generator = ImageDataGenerator(**img_data_gen_args)
-        image_data_generator.fit(X_train, augment=True, seed=seed)  # load X_train before this
 
-        # mask generator (on y_train and y_val)
+        # mask generator (on y_train)
         mask_data_generator = ImageDataGenerator(**mask_data_gen_args)
-        mask_data_generator.fit(y_train, augment=True, seed=seed)  # load y_train before this
 
     else:
         # No data augmentation
         image_data_generator = ImageDataGenerator()
-        image_data_generator.fit(X_train, seed=seed)
-
         mask_data_generator = ImageDataGenerator()
-        mask_data_generator.fit(y_train, seed=seed)
 
+    # Validation generator (ALWAYS without augmentation)
+    valid_image_data_generator = ImageDataGenerator()
+    valid_mask_data_generator = ImageDataGenerator()
+
+    # Training generators
     image_generator = image_data_generator.flow(X_train, seed=seed, batch_size=batch_size)
-    valid_img_generator = image_data_generator.flow(X_val, seed=seed, batch_size=batch_size)
-
     mask_generator = mask_data_generator.flow(y_train, seed=seed, batch_size=batch_size)
-    valid_mask_generator = mask_data_generator.flow(y_val, seed=seed, batch_size=batch_size)
+
+    # Validation Generators (no augmentation)
+    valid_img_generator = valid_image_data_generator.flow(X_val, seed=seed, batch_size=batch_size)
+    valid_mask_generator = valid_mask_data_generator.flow(y_val, seed=seed, batch_size=batch_size)
 
     return image_generator, valid_img_generator, mask_generator, valid_mask_generator
 
