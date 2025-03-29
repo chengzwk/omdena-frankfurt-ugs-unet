@@ -58,7 +58,7 @@ def convert_binary_mask(mask_array, multiclass=True, threshold=0.5):
         mask_array = mask_array[:, :, np.newaxis]
     return mask_array
 
-def read_file(data_dir, image_dir, multiclass=True, threshold=0.5, subset_size=None):
+def read_file(data_dir, image_dir, multiclass=True, threshold=0.5, subset_size=None, bands=['Blue', 'Green', 'Red']):
     """
     Read satellite image files and corresponding masks as numpy arrays,
     normalize image array to the same scale by band, and convert fractional masks into binary masks.
@@ -87,7 +87,8 @@ def read_file(data_dir, image_dir, multiclass=True, threshold=0.5, subset_size=N
             image_array = img.read()
         image_array = np.transpose(image_array, [1, 2, 0])  # move the axis for bands to the third axis
         image_array[np.isnan(image_array)] = 0                   # replace nan with 0
-        image_array = image_array[:, :, (1, 2, 3)]               # get the bands you want; (1, 2, 3) is RGB bands
+        image_array = image_array[:, :, (1, 2, 3, 7)]            # get the bands you want; (1, 2, 3, 7) is Blue, Green, Red, NIR
+
         image_array = normalize_by_layer(image_array)            # Normalize the image by band
 
         # Read mask file
@@ -149,6 +150,31 @@ def remove_images(image_dataset, mask_dataset, threshold):
     mask_dataset_balanced = np.array(mask_dataset_balanced)
 
     return image_dataset_balanced, mask_dataset_balanced
+
+def compute_band_index(image_array, index_name):
+    """
+    NDVI = ((NIR - Red)/(NIR + Red))
+    NDWI = (Green - NIR) / (Green + NIR)
+    """
+    band_blue = image_array[:, :, 0]
+    band_green = image_array[:, :, 1]
+    band_red = image_array[:, :, 2]
+    band_nir = image_array[:, :, 3]
+
+    if index_name == 'NDVI':
+        newband = (band_nir - band_red) / (band_nir + band_red)
+    elif index_name == 'NDWI':
+        newband = (band_green - band_nir) / (band_green + band_nir)
+    return newband
+
+def select_bands(image_array, bands=['Blue', 'Green', 'Red']):
+    band_blue = image_array[:, :, 0]
+    band_green = image_array[:, :, 1]
+    band_red = image_array[:, :, 2]
+    band_nir = image_array[:, :, 3]
+
+    band_ndvi = compute_band_index(image_array, 'NDVI')
+    #NDVI, NDWI
 
 def show_statistics(image_dataset, mask_dataset):
     print("Image data shape is: ", image_dataset.shape)
@@ -303,7 +329,8 @@ if __name__ == "__main__":
     # image_dirs = sorted([d.replace('_masks', '') for d in os.listdir(data_dir) if d.endswith('_masks')])
     image_dir = 'VBWVA_8R'
     subset_size = 100
-    image_dataset, mask_dataset = read_file(data_dir, image_dir, multiclass=False, if_subset=True, subset_size=subset_size)
+    bands = ['Blue', 'Green', 'Red']  # Choose a combination of 3 bands from Blue, Green, Red, NIR, NDVI, NDWI, NDBI
+    image_dataset, mask_dataset = read_file(data_dir, image_dir, multiclass=False, if_subset=True, subset_size=subset_size, bands=bands)
 
     # Print statistics of the dataset and visually inspect the dataset
     show_statistics(image_dataset, mask_dataset)
