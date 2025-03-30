@@ -112,7 +112,7 @@ def read_file(data_dir, image_dir, multiclass=True, threshold=0.5, subset_size=N
     total_files = len(image_files)
 
     # Print progress
-    print(f"Reading images and masks from {image_dir} and {mask_dir}")
+    print(f"Reading images and masks from {image_dir} and {mask_dir}, selected bands={selected_bands}")
 
     for i, image_file in enumerate(image_files):
         mask_file = image_file.replace('.tif', '_fractional_mask.tif')
