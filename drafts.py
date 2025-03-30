@@ -262,3 +262,14 @@ class F1ScoreWithLogits(tf.keras.metrics.F1Score):
 
         # Call parent class update_state method
         return super().update_state(y_true, y_pred, sample_weight)
+
+
+    # Load model
+    model_dir = os.path.join(base_dir, model_id)
+    model_path = os.path.join(model_dir, "best_model_unet.keras")
+    model = load_model(model_path)
+
+    # Evaluate model on test set
+    y_pred, y_pred_thresholded = predict(model, X_test)
+    loss, acc, precision, recall, f1_score, mean_iou, iou_class1 = evaluate_model(model, X_test, y_test, ifsilent=True)
+    auc = plot_roc_curve(y_pred_thresholded, y_test, ifplot=False)
