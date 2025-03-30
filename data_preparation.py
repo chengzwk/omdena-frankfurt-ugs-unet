@@ -20,23 +20,60 @@ def print_progress_bar(iteration, total, length=40):
     sys.stdout.write(f'\r|{bar}| {percent:.2f}%')
     sys.stdout.flush()
 
-def normalize_by_layer(image_array):
+def compute_band_index(image_array, index_name):
+    """
+    NDVI = ((NIR - Red)/(NIR + Red))
+    NDWI = (Green - NIR) / (Green + NIR)
+    """
+    band_blue = image_array[:, :, 0]
+    band_green = image_array[:, :, 1]
+    band_red = image_array[:, :, 2]
+    band_nir = image_array[:, :, 3]
+
+    if index_name == 'NDVI':
+        return np.where((band_nir + band_red) != 0, (band_nir - band_red) / (band_nir + band_red), 0)
+    elif index_name == 'NDWI':
+        return np.where((band_green + band_nir) != 0, (band_green - band_nir) / (band_green + band_nir), 0)
+    else:
+        raise ValueError(f"Unknown index: {index_name}")
+
+def select_bands(image_array, selected_bands=['Blue', 'Green', 'Red']):
+    image_array = image_array.astype(np.float64)  # Convert dtype of image file from int to float64
+
+    band_dict = {
+        'Blue': image_array[:, :, 0],
+        'Green': image_array[:, :, 1],
+        'Red': image_array[:, :, 2],
+        'NIR': image_array[:, :, 3],
+        'NDVI': compute_band_index(image_array, 'NDVI'),
+        'NDWI': compute_band_index(image_array, 'NDWI'),
+    }
+
+    selected_array = np.stack([band_dict[band] for band in selected_bands], axis=-1)
+    return selected_array
+
+def normalize_by_layer(image_array, selected_bands=['Blue', 'Green', 'Red']):
     """
     Function to normalize image data to the same max(1) and min(0)
     Since different layers(bands) have different scales, normalization will be done layer by layer
     """
     # Normalize by band
-    image_array = image_array.astype(np.float64)  # Convert dtype of image file from int to float64
+    # image_array = image_array.astype(np.float64)  # Convert dtype of image file from int to float64
 
-    for i in range(image_array.shape[2]):
-        layer_min = np.min(image_array[:, :, i])
-        layer_max = np.max(image_array[:, :, i])
+    bands_indices = {'NDVI', 'NDWI'}
 
-        try:
-            image_array[:, :, i] = (image_array[:, :, i] - layer_min) / (layer_max - layer_min)
-        except ZeroDivisionError:
-            print(f"Band {i} has zero variation (min = max = {layer_min}). Skipping normalization.")
-            image_array[:, :, i] = 0  # Set the band to default value 0
+    for i, band in enumerate(selected_bands):
+        if band in bands_indices:
+            image_array[:, :, i] = (image_array[:, :, i] + 1) / 2  # Rescale band indices from [-1, 1] to [0, 1]
+        else:
+            layer_min = np.min(image_array[:, :, i])
+            layer_max = np.max(image_array[:, :, i])
+
+            try:
+                image_array[:, :, i] = (image_array[:, :, i] - layer_min) / (layer_max - layer_min)
+            except ZeroDivisionError:
+                print(f"Band {i} has zero variation (min = max = {layer_min}). Skipping normalization.")
+                image_array[:, :, i] = 0  # Set the band to default value 0
 
     return image_array
 
@@ -58,7 +95,7 @@ def convert_binary_mask(mask_array, multiclass=True, threshold=0.5):
         mask_array = mask_array[:, :, np.newaxis]
     return mask_array
 
-def read_file(data_dir, image_dir, multiclass=True, threshold=0.5, subset_size=None, bands=['Blue', 'Green', 'Red']):
+def read_file(data_dir, image_dir, multiclass=True, threshold=0.5, subset_size=None, selected_bands=['Blue', 'Green', 'Red']):
     """
     Read satellite image files and corresponding masks as numpy arrays,
     normalize image array to the same scale by band, and convert fractional masks into binary masks.
@@ -85,11 +122,11 @@ def read_file(data_dir, image_dir, multiclass=True, threshold=0.5, subset_size=N
         # Read image file
         with (rasterio.open(image_path) as img):
             image_array = img.read()
-        image_array = np.transpose(image_array, [1, 2, 0])  # move the axis for bands to the third axis
-        image_array[np.isnan(image_array)] = 0                   # replace nan with 0
-        image_array = image_array[:, :, (1, 2, 3, 7)]            # get the bands you want; (1, 2, 3, 7) is Blue, Green, Red, NIR
-
-        image_array = normalize_by_layer(image_array)            # Normalize the image by band
+        image_array = np.transpose(image_array, [1, 2, 0])                       # move the axis for bands to the third axis
+        image_array[np.isnan(image_array)] = 0                                        # replace nan with 0
+        image_array = image_array[:, :, (1, 2, 3, 7)]                                 # get the bands you want; (1, 2, 3, 7) is Blue, Green, Red, NIR
+        image_array = select_bands(image_array, selected_bands=selected_bands)        # Compute band indices and select bands
+        image_array = normalize_by_layer(image_array, selected_bands=selected_bands)  # Normalize the image by band
 
         # Read mask file
         with rasterio.open(mask_path) as msk:
@@ -150,31 +187,6 @@ def remove_images(image_dataset, mask_dataset, threshold):
     mask_dataset_balanced = np.array(mask_dataset_balanced)
 
     return image_dataset_balanced, mask_dataset_balanced
-
-def compute_band_index(image_array, index_name):
-    """
-    NDVI = ((NIR - Red)/(NIR + Red))
-    NDWI = (Green - NIR) / (Green + NIR)
-    """
-    band_blue = image_array[:, :, 0]
-    band_green = image_array[:, :, 1]
-    band_red = image_array[:, :, 2]
-    band_nir = image_array[:, :, 3]
-
-    if index_name == 'NDVI':
-        newband = (band_nir - band_red) / (band_nir + band_red)
-    elif index_name == 'NDWI':
-        newband = (band_green - band_nir) / (band_green + band_nir)
-    return newband
-
-def select_bands(image_array, bands=['Blue', 'Green', 'Red']):
-    band_blue = image_array[:, :, 0]
-    band_green = image_array[:, :, 1]
-    band_red = image_array[:, :, 2]
-    band_nir = image_array[:, :, 3]
-
-    band_ndvi = compute_band_index(image_array, 'NDVI')
-    #NDVI, NDWI
 
 def show_statistics(image_dataset, mask_dataset):
     print("Image data shape is: ", image_dataset.shape)
@@ -328,9 +340,9 @@ if __name__ == "__main__":
     # Read image and mask files from selected dataset
     # image_dirs = sorted([d.replace('_masks', '') for d in os.listdir(data_dir) if d.endswith('_masks')])
     image_dir = 'VBWVA_8R'
-    subset_size = 100
-    bands = ['Blue', 'Green', 'Red']  # Choose a combination of 3 bands from Blue, Green, Red, NIR, NDVI, NDWI, NDBI
-    image_dataset, mask_dataset = read_file(data_dir, image_dir, multiclass=False, if_subset=True, subset_size=subset_size, bands=bands)
+    subset_size = 10
+    bands = ['Red', 'NIR', 'NDVI']  # Choose a combination of 3 bands from Blue, Green, Red, NIR, NDVI, NDWI
+    image_dataset, mask_dataset = read_file(data_dir, image_dir, multiclass=False, subset_size=subset_size, selected_bands=bands)
 
     # Print statistics of the dataset and visually inspect the dataset
     show_statistics(image_dataset, mask_dataset)
@@ -342,16 +354,10 @@ if __name__ == "__main__":
     # print(image_dataset_balanced.shape, mask_dataset_balanced.shape)
 
     # Train-validation-test split
-    X_train, X_val, X_test, y_train, y_val, y_test = split_dataset(image_dataset, mask_dataset)
-    del image_dataset, mask_dataset
-    print(X_train.shape, X_val.shape, X_test.shape)
-    print(y_train.shape, y_val.shape, y_test.shape)
-
-    # Mask dataset to categorical
-    y_train_cat = categorical_mask_dataset(y_train)
-    y_val_cat = categorical_mask_dataset(y_val)
-    y_test_cat = categorical_mask_dataset(y_test)
-    print(y_train_cat.shape, y_val_cat.shape, y_test_cat.shape)
+    # X_train, X_val, X_test, y_train, y_val, y_test = split_dataset(image_dataset, mask_dataset)
+    # del image_dataset, mask_dataset
+    # print(X_train.shape, X_val.shape, X_test.shape)
+    # print(y_train.shape, y_val.shape, y_test.shape)
 
 
 
