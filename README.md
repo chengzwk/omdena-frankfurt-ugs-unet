@@ -1,29 +1,99 @@
-# Urban Green Space Mapping with U-Net
+# 🌿 Urban Green Space Mapping with U-Net
 
-#### Project Overview
-This project aims to map urban green spaces from Sentinel-2 satellite imagery using a U-Net deep learning model. The model is trained on labeled satellite images to segment and classify green areas in urban environments.
+## Project Overview
 
-#### Dataset
-The dataset consists of satellite images and corresponding ground truth masks indicating green space areas. The ground truth mask dataset used in training are from the [MULC](https://www.mdpi.com/2072-4292/12/12/1909) dataset.
+This project focuses on mapping urban green spaces using Sentinel-2 satellite imagery and U-Net-based deep learning models. We investigate the effectiveness of different input band combinations and model architectures for semantic segmentation of green spaces in urban environments in the city of Frankfurt, Germany.
 
-#### Model Architecture
-The model is based on a standard U-Net architecture, a convolutional neural network designed for image segmentation. It consists of:
-- **Encoder**: Downsampling layers with convolutional and max-pooling operations
-- **Bottleneck**: Bridge layer with high-level feature extraction
-- **Decoder**: Upsampling layers with skip connections from the encoder
 
-#### Training Details
+## Dataset
+
+The primary goal of this project is to predict urban green spaces in **Frankfurt**, Germany. To generate high-quality ground truth, we annotated 13 high-resolution aerial photographs of Frankfurt using **SAM-2** with additional manual corrections. Due to the limited number of annotated images, Frankfurt data was reserved exclusively for final evaluation and not used during model development.
+
+For model training and validation, we used the **MULC dataset** ([Reference](https://www.mdpi.com/2072-4292/12/12/1909)), focusing on the **Virginia Beach/Williamsburg (VBWVA)** and **St. Louis** regions. The VBWVA region, being more similar to Frankfurt in landscape and urban structure, was used for training, validation, and testing splits. All available St. Louis images were included in the training set to increase diversity and improve model generalization.
+
+
+## Model Architectures
+
+### U-Net (from scratch)
+A standard U-Net model trained without a pretrained backbone, tested with multiple band combinations.
+
+### U-Net with ResNet-50 Backbone
+A U-Net model using a ResNet-50 encoder pretrained on ImageNet. This architecture is limited to three-channel input combinations.
+
+
+## Data Pre-processing
+- **Compute band index**: Compute NDVI and NDWI
+- **Normalization**: Normalize each band to [0,1]
+- **Convert to binary**: Convert the mask from fractional (fraction of each of the 5 classes) to binary (0 for non-vegetation, 1 for vegetation)
+
+
+## Training Configuration
+
+- **Optimizer**: AdamW with learning_rate=1e-3, weight_decay=5e-5
 - **Loss Function**: Binary Focal Cross-Entropy
-- **Optimizer**: Adam
-- **Batch Normalization**: Applied in each convolutional block
-- **Dropout**: Used to prevent overfitting
+- **Batch Normalization**: Applied in all convolutional blocks
+- **Dropout**: Not included
+- **Data Augmentation**: Applied to both images and masks using random rotation (±45°), width and height shifts (up to 20%), zoom (up to 20%), horizontal and vertical flips. All transformations use `reflect` fill mode. For masks, a post-processing step binarizes pixel values using a 0.5 threshold.
+- **Learning Rate Scheduler**: Exponentially decays the learning rate by a factor of `exp(-0.1)` every 10 epochs starting from epoch 200. 
 
-#### Example Prediction
-![Urban Green Space Mapping Prediction Example](https://private-user-images.githubusercontent.com/166139720/420338124-bc73fa29-7b10-43d0-91a6-afa15adbe2c4.png?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3NDEzNTM0MTgsIm5iZiI6MTc0MTM1MzExOCwicGF0aCI6Ii8xNjYxMzk3MjAvNDIwMzM4MTI0LWJjNzNmYTI5LTdiMTAtNDNkMC05MWE2LWFmYTE1YWRiZTJjNC5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjUwMzA3JTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI1MDMwN1QxMzExNThaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT0zYmVlODFjM2JhOTIzMGE1MGZhYjRiYzI5ZmMxZTVlMTEzMDdmMGQyNGVkNDQ1MjMwYTEyM2NjZDhjOTI5NzNjJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCJ9._WWuo3kasubArzQVDl2EuIogK4BARDcbtK4k4CV0BK8)
 
-#### Results and Evaluation
-The model achieves a mean IoU (Intersection over Union) score of 0.8641 on the test set. The segmented outputs closely match the ground truth, though some noise remains in certain cases.
+## Input Band Combinations
 
-####  Future Work
-- Improve model performance with additional data augmentation
-- Experiment with alternative pretrained backbones for the U-Net model
+| Band Combination         | Applicable Models              |
+|--------------------------|--------------------------------|
+| Red-Green-Blue           | U-Net, U-Net with ResNet-50    |
+| Red-Green-NIR            | U-Net, U-Net with ResNet-50    |
+| NDVI-Red-NIR             | U-Net, U-Net with ResNet-50    |
+| NDWI-Red-NIR             | U-Net, U-Net with ResNet-50    |
+| Red-Green-Blue-NIR       | U-Net only                     |
+
+
+## Results and Evaluation
+
+Model performance was evaluated on both the VBWVA test region and the independent Frankfurt dataset. Key metrics include overall accuracy (OA), F1-score, and mean Intersection over Union (IoU). The metrics for best-performing models on both architectures are:
+
+| Model                     | Dataset     | OA     | F1-score | Mean IoU |
+|--------------------------|-------------|--------|----------|----------|
+| U-Net (from scratch)     | VBWVA       | 0.8639 | 0.8921   | 0.7604   |
+| U-Net (from scratch)     | Frankfurt   | 0.7632 | 0.7686   | 0.6171   |
+| U-Net + ResNet-50        | VBWVA       | 0.8656 | 0.8891   | 0.7631   |
+| U-Net + ResNet-50        | Frankfurt   | 0.7727 | 0.7701   | 0.6296   |
+
+Both models demonstrated strong performance on the VBWVA dataset and showed reasonable generalization to the Frankfurt dataset, despite domain differences, the difference in annotation across the two datasets and no training exposure to Frankfurt imagery.
+
+
+### Comparison of model performance across band combinations
+![U-Net - VBWVA](https://dagshub.com/chengzwk/omdena-frankfurt-ugs-unet/src/main/report/unet_from_scratch/model_performance_VBWVA_testset.png)
+![U-Net - Frankfurt](https://dagshub.com/chengzwk/omdena-frankfurt-ugs-unet/src/main/report/unet_from_scratch/model_performance_Frankfurt.png)
+
+### Reports and Notebooks
+
+- [Evaluation Report – U-Net from Scratch](https://dagshub.com/chengzwk/omdena-frankfurt-ugs-unet/src/main/report/unet_from_scratch/models_evaluation_report_metrics.ipynb)
+- [Training Notebook – U-Net from Scratch](https://dagshub.com/chengzwk/omdena-frankfurt-ugs-unet/src/main/report/unet_from_scratch/unet-from-scratch_report.ipynb)
+- [Evaluation Report – U-Net with ResNet-50 Backbone](https://dagshub.com/Omdena/FrankfurtGermanyChapter_UrbanGreenSpaceMappping/src/main/TeamBC/Unet_Resnet50/unet_resnet50_models_evaluation_report_metrics.ipynb)
+- [Training Notebook – U-Net with ResNet-50 Backbone](https://dagshub.com/Omdena/FrankfurtGermanyChapter_UrbanGreenSpaceMappping/src/main/TeamBC/Unet_Resnet50/unet-resnet50.ipynb)
+
+## Example Predictions
+
+### U-Net from Scratch (VBWVA and Frankfurt)
+![Example - U-Net - VBWVA](<insert-image-link-here>)
+![Example - U-Net - Frankfurt](<insert-image-link-here>)
+
+### U-Net with ResNet-50 Backbone (VBWVA and Frankfurt)
+![Example - ResNet-50 - VBWVA](<insert-image-link-here>)
+![Example - ResNet-50 - Frankfurt](<insert-image-link-here>)
+
+### Model Prediction vs. Ground Truth on Frankfurt Images
+
+- [U-Net from Scratch]()
+- [U-Net with ResNet-50 Backbone](#)
+
+## Future Work
+
+- Perform more in-depth error analysis on Frankfurt prediction results
+- Test alternative pretrained encoder backbones
+
+## Contact
+
+For questions or feedback, please feel free to reach out via the project page or submit an issue.
+
