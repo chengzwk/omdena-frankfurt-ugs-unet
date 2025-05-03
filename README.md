@@ -63,8 +63,8 @@ Both models demonstrated strong performance on the VBWVA dataset and showed reas
 
 
 ### Comparison of model performance across band combinations
-![U-Net - VBWVA](https://dagshub.com/chengzwk/omdena-frankfurt-ugs-unet/src/main/report/unet_from_scratch/model_performance_VBWVA_testset.png)
-![U-Net - Frankfurt](https://dagshub.com/chengzwk/omdena-frankfurt-ugs-unet/src/main/report/unet_from_scratch/model_performance_Frankfurt.png)
+- ![U-Net - VBWVA](https://dagshub.com/chengzwk/omdena-frankfurt-ugs-unet/src/main/report/unet_from_scratch/model_performance_VBWVA_testset.png)    
+- ![U-Net - Frankfurt](https://dagshub.com/chengzwk/omdena-frankfurt-ugs-unet/src/main/report/unet_from_scratch/model_performance_Frankfurt.png)  
 
 ### Reports and Notebooks
 
@@ -75,18 +75,19 @@ Both models demonstrated strong performance on the VBWVA dataset and showed reas
 
 ## Example Predictions
 
-### U-Net from Scratch (VBWVA and Frankfurt)
-![Example - U-Net - VBWVA](<insert-image-link-here>)
-![Example - U-Net - Frankfurt](<insert-image-link-here>)
+### Model prediction on VBWVA images (U-Net from Scratch and U-Net with ResNet-50 Backbone)
+- ![Example - U-Net - VBWVA](https://dagshub.com/chengzwk/omdena-frankfurt-ugs-unet/src/main/report/unet_from_scratch/Predictions%20on%20VBWVA%20test%20images.png)
+- ![Example - ResNet-50 - VBWVA](https://dagshub.com/chengzwk/omdena-frankfurt-ugs-unet/src/main/report/unet_resnet50/Predictions%20on%20VBWVA%20test%20images.png)
 
-### U-Net with ResNet-50 Backbone (VBWVA and Frankfurt)
-![Example - ResNet-50 - VBWVA](<insert-image-link-here>)
-![Example - ResNet-50 - Frankfurt](<insert-image-link-here>)
+### Model prediction on Frankfurt images (U-Net from Scratch and U-Net with ResNet-50 Backbone)
+- ![Example - U-Net - Frankfurt](https://dagshub.com/chengzwk/omdena-frankfurt-ugs-unet/raw/8a4fbfe6082771e2468b05744a0777872b80c5ff/report/unet_from_scratch/Predictions%20on%20Frankfurt%20images.png)
+
+- ![Example - ResNet-50 - Frankfurt](https://dagshub.com/chengzwk/omdena-frankfurt-ugs-unet/raw/8a4fbfe6082771e2468b05744a0777872b80c5ff/report/unet_resnet50/Predictions%20on%20Frankfurt%20images.png)
 
 ### Model Prediction vs. Ground Truth on Frankfurt Images
 
-- [U-Net from Scratch]()
-- [U-Net with ResNet-50 Backbone](#)
+- [U-Net from Scratch](https://dagshub.com/chengzwk/omdena-frankfurt-ugs-unet/src/main/report/unet_from_scratch/Prediction%20vs%20Ground%20Truth%20on%20Frankfurt%20images.png)
+- [U-Net with ResNet-50 Backbone](https://dagshub.com/chengzwk/omdena-frankfurt-ugs-unet/src/main/report/unet_resnet50/Prediction%20vs%20Ground%20Truth%20on%20Frankfurt%20images.png)
 
 ## Future Work
 
